@@ -1,0 +1,230 @@
+\documentclass{article}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{upquote}
+\usepackage{amssymb}
+\usepackage{wasysym}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{epsfig}
+\setlength{\oddsidemargin}{0in}\setlength{\textwidth}{6.5in}
+\setlength{\topmargin}{0.0in}\setlength{\textheight}{8.5in}
+\input{cs418-macros}
+\newcommand{\sq}{\textquotesingle}
+\newcommand{\bsq}[1]{\textquotesingle#1\textquotesingle}
+\newcommand{\erltemplate}{\hrefc{https://www.students.cs.ubc.ca/~cs-418/2024-2/hw/2/src/hw2.erl}{\code{hw2.erl}}}
+\newcommand{\testtemplate}{\hrefc{https://www.students.cs.ubc.ca/~cs-418/2024-2/hw/2/src/hw2_tests.erl}{\code{hw2\_tests.erl}}}
+\newcommand{\mooseerl}{\hrefc{https://www.students.cs.ubc.ca/~cs-418/2024-2/hw/2/src/moose.erl}{\code{moose.erl}}}
+\newcommand{\equivp}{\equiv_p}
+\newcommand{\nequivp}{{\not\equiv}_p}
+\newcommand{\equivq}{\equiv_q}
+\newcommand{\nequivq}{{\not\equiv}_q}
+\begin{document}
+\noindent%
+CpSc 418 \hfill \begin{tabular}[t]{c}{\Large\bf Homework 2}\smallskip\\
+  			Reduce \& Scan
+		    \end{tabular}
+	 \hfill \begin{tabular}[t]{l}Due: February 8, 2025, 11:59pm\\
+	                             Early-Bird: February 6, 2025, 11:59pm
+		\end{tabular}\bigskip\\
+\par\noindent%
+\section*{Prelude}
+Please submit your solution using:\\
+  \rule{2em}{0ex}\texttt{handin cs-418 hw2}
+Your solution should contain three files:
+\begin{description}
+  \item{\texttt{hw2.erl}}: Erlang source code for your solutions to the questions.
+  \item{\texttt{hw2\_tests.erl}}: Erlang source code for your solutions to the questions.
+  \item{\texttt{hw2.pdf}}: Answers to written questions.
+\end{description}
+\par\noindent%
+A templates for \erltemplate{} and other wonderful goodies are available at\\
+\rule{1.5em}{0ex}\urlc{http://www.students.cs.ubc.ca/~cs-418/2024-2/hw/2/hw2.html}\\
+for your coding convenience.
+\smallskip\\
+
+Please submit code that compiles without errors or warnings.
+If your code does not compile, we might give you zero points on all of the
+programming problems.
+If we fix your code to make it compile, we will take off lots of points for that service.
+If your code generates compiler warnings, we will take off points for that as well, but
+not as many as for code that doesn't compile successfully.
+Any question about whether or not your code compiled as submitted will be determined by trying
+it on CS department linux machines.
+\par
+We will take off points for code that prints results unless we specifically asked for print-out.
+For this assignment, the functions you write should return the specified values, but they should
+not print anything to \code{stdout}.
+Using \iodoc{format}{2} when debugging is great, but you need to delete or comment-out such
+calls before submitting your solution.
+Your code must fail with some kind of error when called with invalid arguments.
+
+\section{The Questions (65 points)}
+\begin{enumerate}
+  \item Scan by the book. \textbf{(20 points)}\label{q:scan}\\
+    In the \hrefc{https://www.students.cs.ubc.ca/~cs-418/2025-1/lecture/09-17/slides.pdf}{September 17}
+    lecture, we implemented \code{reduce} using the bottom-up approach presented in the
+    Lin \& Snyder text.
+    The template file, \erltemplate{} has the \code{create/2} and \code{reduce/3}
+    functions from that lecture.
+    For this question, you will implement \code{scan}.
+    \begin{enumerate}
+      \item \textbf{(10 points)} Implement \code{scan(ProcInfo, CombineFun, AccIn, Value)} where
+	\code{scan} is called by the worker processes:
+	\begin{description}
+	  \item{\code{ProcInfo}} is the \code{ProcInfo} for the process calling \code{scan};
+	  \item{\code{CombineFun(Left, Right)}} is the function for combining values from
+	    the left and right subtrees of the current node.
+	  \item{\code{AccIn}} is the initial value for the accumulation.
+	    All workers should call \code{scan} with the same value for \code{AccIn}.
+	  \item{\code{Value}} is the value for the scan for this worker.
+	\end{description}
+	\code{scan} implements a ``exclusive'' scan: the value returned by \code{scan}
+	  is the value obtained by combining all values prior to the current worker.
+	  In other words, it doesn't include the value from the current worker.
+	  For example, if\\
+	  \rule{1.5em}{0ex}\code{CombineFun(Left, Right) -> Left + Right end,}\\
+	  and we have 8 workers processes whose values for the scan are the elements of\\
+	  \rule{1.5em}{0ex}\code{[1,2,3,4,5,6,7,8]},\\
+	  then the values returned by \code{scan(ProcInfo, CombineFun, AccIn, Value)} will be\\
+	  \rule{1.5em}{0ex}\code{[0,1,3,6,10,15,21,28]}.\\
+	  Note that you can get the effect of an inclusive scan that includes the
+	  value from the current worker by applying\\
+	  \rule{1.5em}{0ex}\code{CombineFun(ValueFromScan, Value)}\\
+	  We can't necessarily get the value for an exclusive scan from an
+	  inclusive scan; that only works if \code{CombineFun} is invertible.
+	\par  See the test case in \code{hw2\_tests.erl} for an executable example.
+	\par My implementation uses a \code{scan/5} that is based on the code from
+          \code{hw2:reduce/4} with an extra parameter for \code{AccIn}.
+	  You can solve this problem ``easily'' by copying the code from \code{reduce/4},
+	  adding a \code{AccIn} parameter, and making the changes to convert a reduce to
+	  a scan.  Then, make \code{scan/4} call your \code{scan/5} just like \code{reduce/3}
+	  calls \code{reduce/4}.  You can probably find a harder way to solve the problem,
+	  but we may take off points if you make the code excessively complicated.
+      \item \textbf{(5 points)} Add a test case to \code{hw2\_tests.erl}.
+	Use a function for \code{CombineFun} that is both associative and commutative
+	and not a test-case example from \testtemplate{}.
+	Clearly state in your comments that this is a test case for a function that
+	is associative and commutative.
+      \item \textbf{(5 points)} Add a test case to \code{hw2\_tests.erl}.  Use a function
+	for \code{CombineFun} that is associative but not commutative
+	and is not a test-case example from \testtemplate{}.
+	Clearly state in your comments that this is a test case for a function that
+	is associative but not commutative.
+    \end{enumerate}
+
+  \item Help find my moose. \textbf{(25 points)} \label{q:moose}\\
+    The moose that was in my refrigerator for
+    \hrefc{https://www.students.cs.ubc.ca/~cs-418/2024-2/pika/2/pika2.erl}{PIKA 2} has escaped!
+    Please help me find the moose.
+    \par
+    In a bit more detail, let \code{WorkerTree} be a tree of processes created by \code{wtree:create/1}.
+    Let \code{Key} be the key for a list that is distributed across the workers of \code{WorkerTree}.
+    In other words,\\
+    \rule{1.5em}{0ex}\code{lists:append(wtree:retrieve(WorkerTree, Key))}\\
+    returns this list.
+    How many times does the string \code{"moose"} occur in this list?
+    \par
+    The function \code{hw2:moose\_ref(WorkerTree, Key)} is a sequential implementation
+    that retrieves the list associated with \code{Key} as described above and returns
+    the number of occurrences of \code{"moose"} in that list.
+    For this problem, you will write a parallel version using \code{wtree:reduce}.
+
+    \begin{enumerate}
+      \item (\textbf{5 points})
+	Include in the \code{hw2.erl} file that you submit, a comment (probably 5 to 10 lines)
+	a high level description of your implementation:
+	\begin{itemize}
+	  \item Which of the patterns for reduce from the
+	    \hrefc{https://www.students.cs.ubc.ca/~cs-418/2024-1/lecture/09-13/slides.pdf}{September 13 lecture}
+	    does your design use?
+	    If your design is a different pattern, please explain.
+	  \item Describe the ``type'' of the value returned by your \code{Leaf} function,
+	    and used as the arguments and return type of your \code{Combine} function.  For
+	    example, if it's a list, say that it's a list and describe the type of the elements.
+	    If its a tuple, say it's a tuple, and describe the types of the elements.
+	  \item Is there anything else another programmer would want to know to understand
+	    your implementation.
+	\end{itemize}
+	This description should be a fairly high-level description of the design.
+	Don't write a line-by-line English approximation of what your code does;
+	you may assume that we can read Erlang code.
+
+      \item (\textbf{5 points})
+	Implement the leaf function, \code{hw2:moose\_leaf(ProcState, Key)}.
+
+      \item (\textbf{5 points})
+	Implement the combine function, \code{hw2:moose\_combine(Left, Right)}.
+
+      \item (\textbf{5 points})
+	Implement the top-level function, \code{hw2:moose\_par(WorkerTree, Key)}.
+	If \code{WorkerTree} is a worker tree, and \code{Key} is a valid key for
+	a list distributed across the workers of \code{WorkerTree}, then\\
+	\rule{1.5em}{0ex}\code{hw2:moose\_par(WorkerTree, Key) == hw2:moose\_seq(WorkerTree, Key)}\\
+	should evaluate to \code{true}.
+
+      \item (\textbf{5 points})
+	Add at least three test cases to each of
+	\code{hw2\_tests:moose\_leaf\_test()},\\
+	\code{hw2\_tests:moose\_combine\_test()}, and
+	\code{hw2\_tests:moose\_par\_test()}.
+
+      \item[\textbf{Notes:}]
+	\begin{itemize}
+	  \item Be careful about cases where the string \code{"moose"} is spread across
+	    two or more workers.
+	    Reading test cases provided in \code{moose\_par\_test} in
+	    \testtemplate{} may be helpful for giving you ideas of some of the cases to consider.
+	    See also \code{moose:data} in \mooseerl{}.
+	  \item I was going to add a question to measure the speed-up of \code{moose\_par}
+	    wrt.\ \code{moose\_seq} on \texttt{thetis.cs.ubc.ca}.
+	    From my measurements, the results are disappointing.
+	    I might do a some more forensic work on that and include an analysis in the solution set.
+	    In the meantime, I'll put the speed-up measurement question into the next problem.
+	\end{itemize}
+    \end{enumerate}
+
+
+  \item Queues. (\textbf{$\sim\!20$ points})\label{q:queue}\\
+    Coming soon!
+\end{enumerate}
+
+
+\section{Why?}\label{sec:why}
+  \begin{description}
+    \item{\textbf{Question~\ref{q:scan}}}: Implementing scan is a good exercise to take
+      the ``magic'' out of the algorithm.\\
+      \textbf{Note}: it was brought to my attention that the
+      file names for my PDF uploads to Canvas could be more descriptive.  One is Chapter 5
+      of the Lin \& Snyder book.  The other is my introduction to their Peril-L notation.
+      If you are finding their notation to be cryptic and you haven't read my introduction,
+      you probably want to download that file as well.
+
+    \item{\textbf{Question~\ref{q:moose}}}: 
+      An example of the \code{\tuple{Left, Overall, Right}} pattern for reduce and scan.
+
+    \item{\textbf{Question~\ref{q:queue}}}: 
+      Monte Carlo simulations, i.e.\ randomized simulations are very widely used.
+      They are also an example of an ``embarrassingly parallel'' problem.
+      Because each of the simulation runs is supposed to be independent of the others,
+      many processors can work each on their own set of simulations.
+      We need to combine these results at the end, typically creating some kind of summary.
+      This combination of the results is often an example of reduce, it is definitely is
+      a reduce for the problem posed here.\\
+      Simulating queues will help us better understand the routing networks used in messaging
+      passing machines.
+  \end{description}
+
+\vfill
+\parbox{0.16\textwidth}{
+  \includegraphics[width=0.16\textwidth]{cc-by}
+}\hfill\parbox{0.80\textwidth}{
+  \footnotesize
+  Unless otherwise noted or cited, 
+  the questions and other material in this homework problem set
+  is copyright 2025 by Mark Greenstreet
+  and are made available under the terms of the Creative Commons
+  Attribution 4.0 International license
+  \url{http://creativecommons.org/licenses/by/4.0/}
+}
+\end{document}

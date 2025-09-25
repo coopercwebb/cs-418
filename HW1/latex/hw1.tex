@@ -1,0 +1,842 @@
+\documentclass{article}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{upquote}
+\usepackage{amssymb}
+\usepackage{wasysym}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{epsfig}
+\usepackage{float}
+\usepackage{caption}
+\setlength{\oddsidemargin}{0in}\setlength{\textwidth}{6.5in}
+\setlength{\topmargin}{0.0in}\setlength{\textheight}{8.5in}
+\input{cs418-macros}
+\newcommand{\sq}{\textquotesingle}
+\newcommand{\bsq}[1]{\textquotesingle#1\textquotesingle}
+\newcommand{\erltemplate}{\hrefc{https://www.students.cs.ubc.ca/~cs-418/2024-1/hw/1/src/hw1.erl}{\code{hw1.erl}}}
+\newcommand{\erltest}{\hrefc{https://www.students.cs.ubc.ca/~cs-418/2024-1/hw/1/src/hw1_tests.erl}{\code{hw1\_tests.erl}}}
+\newcommand{\erlx}{\hrefc{https://www.students.cs.ubc.ca/~cs-418/2024-1/hw/1/src/hw1x.beam}{\code{hw1x.beam}}}
+\newcommand{\equivp}{\equiv_p}
+\newcommand{\nequivp}{{\not\equiv}_p}
+\newcommand{\equivq}{\equiv_q}
+\newcommand{\nequivq}{{\not\equiv}_q}
+\newcommand{\codescript}[3]{${\code{#1}}_{\code{\scriptsize{#2}}}^\code{\scriptsize{#3}}$}
+
+\newenvironment{answer}
+{\color{blue}}
+{\normalfont}
+
+\begin{document}
+\noindent%
+CpSc 418 \hfill \begin{tabular}[t]{c}{\Large\bf Homework 1}\smallskip\\
+  				     Getting started with Erlang
+		\end{tabular}
+	 \hfill \begin{tabular}[t]{l}Due: September 16, 2025, 11:59pm\\
+	                             Early-Bird: September 14, 2025, 11:59pm
+		\end{tabular}\bigskip\\
+\par\noindent%
+\section*{Prelude}
+Please submit your solution using:\\
+  \rule{2em}{0ex}\texttt{handin cs-418 hw1}
+Your solution should contain two files:
+\begin{description}
+  \item{\texttt{hw1.erl}}: Erlang source code for your solutions to the questions.
+  \item{\texttt{hw1.pdf}}: Your solutions to written questions.
+\end{description}
+%
+\par\noindent%
+The following files are available at
+\urlc{http://www.students.cs.ubc.ca/~cs-418/2024-1/hw/1/hw1.html}:
+\begin{description}
+  \item{\erltemplate{}:} a template for \code{hw1.erl}.
+  \item{\erltest{}:}     a few
+    \hrefc{https://learnyousomeerlang.com/eunit}{EUnit} tests for \code{hw1.erl}.
+  \item{\erlx{}:}        a beam code for my solution.
+\end{description}
+
+Please submit code that compiles without errors or warnings.
+If your code does not compile, we might give you zero points on all of the
+programming problems.
+If we fix your code to make it compile, we will take off lots of points for that service.
+If your code generates compiler warnings, we will take off points for that as well, but
+not as many as for code that doesn't compile successfully.
+Any question about whether or not your code compiled as submitted will be determined by trying
+it on CS department linux machines.
+\par
+We will take off points for code that prints results unless we specifically asked for print-out.
+For this assignment, the functions you write should return the specified values, but they should
+not print anything to \code{stdout}.
+Using \iodoc{format}{2} when debugging is great, but you need to delete or comment-out such
+calls before submitting your solution.
+Your code must fail with some kind of error when called with invaid arguments.
+\par
+This assignment is based on the first thirteen sections of \lyse{} -- up through\\
+\hrefc{https://learnyousomeerlang.com/more-on-multiprocessing}{More on Multiprocessing}.
+
+\section{The Questions (93 points)}
+\begin{enumerate}\setcounter{enumi}{-1}
+  \item \textbf{Collaborators} (\textbf{3 points}).\label{q:collab}\\
+    In your \texttt{hw1.pdf} list anyone you collaborated with or outside materials that you used.
+    \begin{itemize}
+      \item If the collaborator is a student in this class, give their CWL.
+      \item If the colloborator is a human who is not in this class, give their name
+	and a short (i.e.\ one sentence) description of their relevance to this course.
+      \item If you used on-line material, give the URL.
+      \item If you used an AI assistant, give the name of the assistant.
+	We'll give extra credit if you include your prompt, and one sentence to say
+	what was useful in the response.
+      \item Other sources such as books should be just cited clearly.
+    \end{itemize}
+    For each collaborator, list what questions you collaborated on.
+    \par
+    You do not need to list course materials including anything on the 
+    \hrefc{https://www.students.cs.ubc.ca/~cs-418}{cs-418 website},
+    assigned readings, the official \hrefc{https://www.erlang.org}{Erlang} documentation,
+    or material from office hours or tutorials.
+    \par
+    If you had no collaborators, write ``\textit{No collaborators}''.
+    A blank or omitted response will get no credit.
+    \begin{answer}
+      No collaborators
+    \end{answer}
+
+  \item \textbf{Patterns} (\textbf{10 points}).\label{q:patterns}\\
+    For each \code{Pattern} in Table~\ref{tab:patterns} list the \code{Values} from
+    the table that match it.  If \code{Pattern} includes the variable \code{X}, then
+    for each \code{Value} that matches it, give the value of \code{X}.
+    \begin{table}\begin{center}
+      \caption{Patterns and Values}\label{tab:patterns}
+      \begin{tabular}{|l|l|}\hline
+	\code{Pattern}       & \code{Value}\\\hline
+	   i. \code{X}       & a. \code{[]}\\
+	  ii. \code{\_}       & b. \code{0}\\
+	 iii. \code{[X, Y]}  & c. \code{[cat]}\\
+	  iv. \code{[X | Y]} & d. \code{[cat, fish]}\\
+	   v. \code{[X, Y | Z]}
+	   & e. \code{[potoroo,
+		       bettong,
+		       wombat
+		       ]}\\
+	  vi. \code{0} & f. \code{lists:seq(10,0,-2)}\\
+	 vii. \code{\tuple{X}}   & g. \code{\tuple{bat, wombat}}\\
+	viii. \code{\tuple{X,\_}} & h. \code{[\tuple{panda, 3}, \tuple{penguin, 2}, \tuple{potoroo, 137}]}\\
+	  ix. \code{[\_, \tuple{\_,X} | \_]} & i. \code{[\tuple{dog, 2}, \tuple{potoroo, 137}, \tuple{cat, 3}]}\\
+	   x. \code{[\_|\_]}   & j. \code{\tuple{[cat, dog, potoroo], [3, 2, 137]}}\\\hline
+      \end{tabular}
+    \end{center}\end{table}
+    \begin{center}
+      \begin{tabular}{|l|p{4.5in}|}\hline
+	\code{Pattern} & Matching Values\\\hline
+	i. \code{X} & a.~\code{X=[]}; b.~\code{X=0}; c.~\code{X=[cat]}; d.~\code{X=[cat,fish]}; e.~\code{X=[potoroo,bettong,wombat]}; f.~\code{X=[10,8,6,4,2,0]}; g.~\code{X=\tuple{bat,wombat}}; h.~\code{X=[\tuple{panda,3},\tuple{penguin,2},\tuple{potoroo,137}]}; \newline i.~\code{X=[\tuple{dog,2},\tuple{potoroo,137},\tuple{cat,3}]}; \newline j.~\code{X=\tuple{[cat,dog,potoroo],[3,2,137]}}\\\hline
+	ii. \code{\_} & a, b, c, d, e, f, g, h, i, j\\\hline
+	iii. \code{[X, Y]} & d.~\code{X=cat}\\\hline
+	iv. \code{[X | Y]} & c.~\code{X=cat}; d.~\code{X=cat}; e.~\code{X=potoroo}; f.~\code{X=10}; h.~\code{X=\tuple{panda,3}}; i.~\code{X=\tuple{dog,2}}\\\hline
+	v. \code{[X, Y | Z]} & d.~\code{X=cat}; e.~\code{X=potoroo}; f.~\code{X=10}; h.~\code{X=\tuple{panda,3}}; i.~\code{X=\tuple{dog,2}}\\\hline
+	vi. \code{0} & b\\\hline
+	vii. \code{\tuple{X}} & (no matches)\\\hline
+	viii. \code{\tuple{X,\_}} & g.~\code{X=bat}; j.~\code{X=[cat,dog,potoroo]}\\\hline
+	ix. \code{[\_, \tuple{\_,X} | \_]} & h.~\code{X=2}; i.~\code{X=137}\\\hline
+	x. \code{[\_|\_]} & c, d, e, f, h, i\\\hline
+      \end{tabular}\end{center}
+    
+    \item \textbf{Modular exponentiation.}  (15 points)\label{q:russian}\\
+    We want to compute $\code{X}^{\code{\scriptsize{}N}} \bmod \code{M}$ where
+    \code{X}, \code{N}, and \code{M} are all integers.
+    An obvious implementation is:
+    \begin{xcode}
+      mpow\_0(X, N, M) when is\_integer(X), is\_integer(N), 0 =< N, is\_integer(M), 0 < M ->\\
+      \>misc:mod(X*mpow\_0(X, N-1, M), M);\\
+      mpow\_0(X, 0, 1) when is\_integer(X) -> 0;\\
+      mpow\_0(X, 0, M) when is\_integer(X), is\_integer(M), 1 < M -> 1.
+    \end{xcode}
+    Why the \code{\_0} subscript?
+    Because we're going to write a better version below,
+    and I'm saving the name \code{mpow} for the better version.
+    Why the guards of \code{is\_integer(X)} for all three cases?
+    Because I wrote above that the Erlang functions we write should throw
+    an exception when called with invalid arguments.
+    \begin{enumerate}
+      \item Russian Peasant exponentiation (5 points)\\
+	The Russian Peasant method is defined by the following recurrence:
+	\begin{displaymath}\begin{array}{rcll}
+	  X^0 &=& 1\\
+	  X^n &=& (X^2)^{n/2}, & \textrm{if $n$ is even}\\
+	  X^n &=& X*(X^2)^{(n-1)/2}, & \textrm{if $n$ is odd}
+	\end{array}\end{displaymath}
+	Write \code{mpow(X, N, M)} using the Russian Peasant algorithm.
+	Make sure that you take the intermediate results modulo-\code{M} at each step;
+	otherwise you can produce \emph{enormous} intermediate results which will make
+	your code run \emph{really} slowly.
+	In Erlang, \code{N/2} produces a floating point value even if \code{N} is an even integer.
+	Use \code{div}, truncating integer division when you need an integer result.
+      \item Is the Russian Peasant algorithm fast? (10 points)\\
+	\begin{enumerate}
+	  \item \textbf{(5 points)}\\
+	    Use \code{time\_it:t} from the course library to compare the execution times
+	    for \code{mpow\_0(X, N, M)} and \code{mpow(X, N, M)} for \code{X=1234567},
+	    \code{M=10000000}, and \code{N $\in$ $\{$1000, 10000, 100000, 500000$\}$}.
+	    Please measure all times on \texttt{thetis.students.cs.ubc.ca}
+	    or \texttt{thetis.students.cs.ubc.ca}, and report
+	    the times in a table.
+
+      \begin{table}[H]
+	    \centering
+	    \caption*{Execution time comparison between \code{mpow\_0} and \code{mpow}}
+	    \begin{tabular}{|c|c|c|}
+	    \hline
+	    \textbf{N} & \textbf{mpow\_0 (seconds)} & \textbf{mpow (seconds)} \\
+	    \hline
+	    1,000 & 4.35 $\times$ 10$^{-5}$ & 8.94 $\times$ 10$^{-7}$ \\
+	    \hline
+	    10,000 & 5.05 $\times$ 10$^{-4}$ & 7.59 $\times$ 10$^{-7}$ \\
+	    \hline
+	    100,000 & 4.01 $\times$ 10$^{-3}$ & 1.11 $\times$ 10$^{-6}$ \\
+	    \hline
+	    500,000 & 2.16 $\times$ 10$^{-2}$ & 1.14 $\times$ 10$^{-6}$ \\
+	    \hline
+	    \end{tabular}
+	    \end{table}
+
+	  \item \textbf{(5 points)} Let\\
+	    \begin{xcode}
+	      Ipow = \=fun \=F(\_,0) -> 1;\\
+			   \>F(X,N) when is\_integer(N), N > 0 -> X*F(X,N-1)\\
+		     \>end,\\
+	      Googol = Ipow(10, 100),\\
+	      BigInteger = lists:foldl(fun(X, Prod) -> X*Prod end, 1, lists:seq(123456789, 123456800)).
+	    \end{xcode}
+	    Use \code{time\_it:t} from the course library to measure the execution time for
+	    \begin{xcode}
+	      hw1:mpow(BigInteger+17, BigInteger, Googol)
+	    \end{xcode}
+	    \begin{itemize}
+	      \item What time did you measure?\\
+		Note: you can try this with \code{hw1x:mpow} to see if your implementation is
+		``reasonable''.\\ 
+        \code{8.503 $\times$ 10$^{-4} s$}
+	      \item Why would you not want to use \code{mpow\_0} for this computation?\\
+		A one sentence answer is sufficient. \\
+        \begin{answer}
+        Using mpow\_0 on a large number (or any number) will result in $N$ function calls, while mpow will result in $log_2N$ function calls.
+        \end{answer}
+	    \end{itemize}
+	\end{enumerate}
+    \end{enumerate}
+
+  \item \textbf{Rabin-Miller primality testing} (30 points):\label{q:rabin-miller}\\
+    The Rabin-Miller algorithm is a cool algorithm, it is widely used (e.g.\ for generating RSA keys),
+    and I'll use it to create ``embarrassingly parallel'' problem for Question~\ref{q:par}.
+    This problem comes with a two-page introduction -- I've tried to keep the number theory informal
+    and simple, but give hopefully give you enough understanding of the algorithm to appreciate it
+    help you when debugging your implementation.
+
+    \textbf{Motivation:} Sometimes, we want to find some fairly large prime numbers.
+    For example, the RSA-2048 encryption uses a public key that is the product of
+    two prime numbers, where the product should be a 2048 bit integer.
+    Thus, each the primes should be roughly 1024 bit integers, or around $10^{308}$.
+    How do we find primes with 300 or more digits?
+    \par
+    The good news is that for numbers near a large integer, $N$, the fraction of
+    such integers that are prime is roughly $1/\log(N)$, where $\log$ is the
+    natural logarithm.
+    See the \hrefc{https://en.wikipedia.org/wiki/Prime_number_theorem}{Prime Number Theorem}
+    if you want the details.
+    To find a random prime around $10^{J}$ we just need, on average, to try $\log(10^J) \approx 2.3J$ numbers.
+    Because we don't need to test even numbers, we can reduce that to half as many, i.e.\ $1.15J$,
+    and with further ``tricks'', we could reduce the constant factor even more.
+    \par
+    Given a large, odd number, $Q$, how can we determine if it's prime?
+    Testing all factors up to $Q$ is clearly impractical.
+    We only need to test factors up to $\sqrt{Q}$, but if we are looking for prime numbers
+    around $10^{308}$ we still need to try $10^{154}$ possible factors for a brute force approach.
+    We need something better, and for this problem, we'll use the Rabin-Miller algorithm.
+    I'll sketch the ideas behind the algorithm here, and I'll try to keep the number-theory
+    fairly informal.
+    \par
+    The Rabin-Miller primality test is a randomized algorithm.
+    There are three main ideas behind the algorithm:
+    \begin{description}
+      \item{\textbf{Fermat's Little Theorem:}}
+	\textit{If $P$ is a prime and $A$ is an integer that is not a multiple of $P$,
+	then $A^{P-1} \bmod P = 1$.}\\
+	See Appendix~\ref{sec:flt} for a proof and some examples.
+      \item{\textbf{The Square Root of 1:}}
+	\textit{If $P$ is a prime and $A$ is an integer such that $A*A \bmod P = 1$,
+	then either $A \bmod P = 1$ or $A \bmod P = P-1$.}\\
+	See Appendix~\ref{sec:sqrt} for a proof and some examples.
+      \item{\textbf{Randomized computation:}}
+	Fermat's Little Theorem and the observation about squares mod $P$ can be used
+	to show that an alleged prime, $Q$ is composite, but can't prove that $Q$ is prime.
+	The breakthrough that Rabin and Miller made is they combined these two in a way
+	such that the probability that a composite number $Q$ passes both tests for a randomly
+	chosen $A$ is at most $\frac{1}{4}$.
+	If we choose $K$ different values of $A$ independently, then the probability of $Q$
+	passing all $K$ trials is at most $4^{-K}$.
+	\par
+	For example, if \code{K=50},
+	then the probability of incorrectly declaring \code{Q} to be prime is at most
+	$4^{-50} \approx 7.9 \times 10^{-31}$.   In other words, if we found one alleged prime
+	per nanosecond using the Rabin-Miller test, we'd expect to have a non-prime slip through
+	about once every 40 trillion years -- about 300 times the age of the universe.
+	If that's not good enough for you,
+	just choose $K$ large enough to meet your high standards.
+    \end{description}
+    \begin{figure}
+      \begin{description}
+	\item{1.} Let \code{Q} be the number whose primality we wish to test.
+	  \code{Q} must be a positive, odd integer.
+	  Let \code{K} be a positive integer.
+	\item{2.} Find \code{D} and \code{S} such that \code{D} is odd and
+	  $\code{Q-1} = \code{D}*2^{\code{\scriptsize}S}$.
+	\item{3.} Repeat \code{K} times:
+	  \begin{description}
+	    \item{a.} Pick a random integer, \code{A} with \code{1 < A < Q-1}.
+	    \item{b.} Raise \code{A} to the \code{D}\textsuperscript{th} power, mod \code{Q}.
+	      Let \code{\codescript{B}{0}{} = mpow(A, D, Q)}.
+	    \item{c.} If \code{\codescript{B}{0}{} == 1},
+	      then continue with the next of the \code{K} iterations.
+	    \item{d.} Otherwise, compute \code{\codescript{B}{0}{S} rem Q} by repeated squaring:
+	      \begin{description}
+		\item{i.} For \code{I} in \code{1} to \code{S}, let
+		  \code{\codescript{B}{I}{} = (\codescript{B}{I-1}{} * \codescript{B}{I-1}{}) rem Q}.
+		  Remark:
+		  \begin{math}
+		    \code{B}_{\scriptsize{\code{I}}} =
+		    \code{B}_{\scriptsize{\code{0}}}^{\left(\scriptsize{\code{2}}^{\tiny{\code{I}}}\right)}
+		  \end{math}
+
+		  \code{\codescript{B}{I}{} == \codescript{B}{0}{2\textsuperscript{I}} rem Q}.
+		\item{ii.} If for any \code{I} in \code{1} to \code{S}, \code{\codescript{B}{I}{} == 1}
+		  and \codescript{B}{I-1}{} is neither \code{1} nor \code{Q-1},
+		  then return false.
+		  \code{Q} has failed the square-root test and is not prime.
+		\item{iii.} If \code{\codescript{B}{S}{} /= 1} then return \code{false}.
+		  \code{Q} has failed the Fermat test and is not prime.
+		\item{iv.} If both conditions hold, then \code{Q} has passed this round of the
+		  Rabin-Miller algorithm.
+	      \end{description}
+	  \end{description}
+	\item{4.} If \code{Q} passes all \code{K} rounds, then the probability that \code{Q} is
+	  composite is at most $4^{-\code{\scriptsize{K}}}$, and Rabin-Miller returns \code{true}.
+	\item{5.} Otherwise (i.e.\ \code{Q} failed either the square-root test or the Fermat
+	  test on one of the \code{K} rounds), Rabin-Miller returns \code{false}.
+      \end{description}
+      \caption{Outline of the Rabin-Miller primality testing algorithm.}\label{fig:rm-outline}
+    \end{figure}
+
+
+    Figure~\ref{fig:rm-outline} sketches the Rabin-Miller algorithm.
+    You now know ``everything'' you need to implement the Rabin-Miller algorithm.
+    The functions we will use are:
+    \begin{description}
+      \item{\code{rabin\_miller(Q, K)}:} return \code{true} if \code{Q} passes \code{K} rounds
+	of the Rabin-Miller test and \code{false} otherwise.
+	\begin{description}
+	  \item \code{rabin\_miller(Q, K)} calls \code{rm\_decompose/1} and \code{rm\_check/2}.
+	  \item An implementation of \code{rabin\_miller(Q, K)} is provided in the \erltemplate{} template file.
+	    It just checks that the arguments are ``reasonable'' and handles some trivial cases to
+	    avoid special cases in the code you will write for other functions.
+	  \item An implementation of \code{rabin\_miller(Q)} is provided in the \erltemplate{} template file.
+	    It just calls \code{rabin\_miller(Q, 50)}.
+	\end{description}
+      \item{\code{rm\_decompose(N)}:} returns \code{\tuple{D,S}} such that \code{D} is a
+	positive, odd number, \code{S} is a non-negative integer, and \code{N == D*2\textsuperscript{S}}.
+	\begin{itemize}
+	  \item \code{N} must be a positive integer.
+	  \item \code{rm\_decompose(N)} is called by \code{rabin\_miller/2}.
+	\end{itemize}
+      \item{\code{rm\_check(Q, D, S, K)}:} Perform \code{K} trials of the Rabin-Miller test for \code{Q}.
+	\begin{itemize}
+	  \item Return \code{true} iff all trials pass.
+	  \item \code{D} and \code{S} must satisfy \code{D*2\textsuperscript{S} = Q-1}.
+	  \item \code{rm\_check(Q, D, S, K)} is called by \code{rabin\_miller/2}.
+	  \item \code{rm\_check(Q, D, S, K)} calls \code{rm\_check(Q, B, S)} with \code{B = mpow(A, D, Q)}.
+	\end{itemize}
+      \item{\code{rm\_check(Q, D, S)}:} Perform one trial of the Rabin-Miller test.
+	\begin{itemize}
+	  \item This corresponds to steps 3.a through 3.d from Figure~\ref{fig:rm-outline}.
+	  \item Return \code{true} iff for the random choice of \code{A},
+	    \code{Q} passes the square-root and Fermat tests.
+	  \item \code{rm\_check(Q, D, S)} is called by \code{rm\_check/4}.
+	\end{itemize}
+    \end{description}
+    %
+    \par\noindent% 
+    \textbf{The actual questions!} (finally)
+    \begin{enumerate}
+      \item\label{q:rabin-miller.decompose}
+	Implement \code{rm\_decompose(N)}. (5 points)\\
+	See the description above and in the \erltemplate{} template file.
+      \item\label{q:rabin-miller.check}
+	Implement \code{rm\_check(Q, D, S)}. (10 points)\\
+	See the description above and in the \erltemplate{} template file.\\
+	\textbf{Hint:} my solution computes \code{B0 = mpow(A, D, Q)} and then
+	calls a helper function for the \code{S} squaring rounds.
+      \item\label{q:rabin-miller.checkK}
+	Implement \code{rm\_check(Q, D, S, K)}. (10 points)\\
+	See the description above and in the \erltemplate{} template file.
+      \item Give a brief description of your design and coding choices
+	when solving questions~\ref{q:rabin-miller.check}
+	and~\ref{q:rabin-miller.checkK}.
+    \end{enumerate}
+
+  \begin{answer}
+  3b: The initial function generates a random number (A) by using the \code{rand:uniform} function. 
+  Once the random number is generated a helper function is called to iterate through the repeated squaring checks.
+  The helper function will utilize tail elimination (memory efficient) as it recurses and does not depend on intermediate values.
+  The helper function performs the repeated squaring by computing $B_i = B_{i-1}^2 \bmod Q$ for each iteration and checks both the square-root test and Fermat test conditions at each step.
+
+  3c: I chose to use the list builder notation to generate K elements all which call the 3 parameter \code{rm\_check()}.
+  Once the list is generated I use the \code{lists:all} function to determine if all the tests passed (entire list evaluates to true - K rounds passed).
+  \end{answer}
+
+  \item Finding Primes.  (10 points)\label{q:find}\\
+    Now that we have a primality test, let's find some primes.
+    Complete the function \code{find\_primes(Lo, Hi, N)} in the \erltemplate{} template file.
+    This function should return the first (i.e.\ smallest) \code{N} primes in the interval
+    \code{[Lo, Hi]} (inclusive).  If the number of primes in \code{[Lo, Hi]} is less than \code{N},
+    return a list of all primes in the interval.
+    There should be no duplicates, but we won't be picky about the order of the list.
+    You should use the Rabin-Miller test to determine whether or not a candidate integer is prime.
+    A simple sieve is more efficient for finding small primes, but we're using this to
+    test your implementation of the Rabin-Miller algorithm.
+    \par
+    Note: my solution calls a tail-recursive helper function.
+    You don't need to do that, but if you find it simpler and clearer to implement \code{find\_primes/3}
+    using one or more helper functions, please do so.
+
+  \item Parallel Primes.  (25 points)\label{q:par}\\
+    Yay -- we're finally doing something parallel!
+    Implement \code{par\_primes(Lo, Hi, N, NW)} which is like \code{find\_primes(Lo, Hi, N)}
+    but computed with \code{NW} worker processes.
+    \code{par\_primes(Lo, Hi, N, NW)} should:
+    \begin{itemize}
+      \item Divide \code{[Lo, Hi]} into \code{NW} disjoint intervals.
+      \item Spawn \code{NW} worker processes, each should be tasked with finding \code{N/NW} primes
+	(rounded up or down to make the total \code{N}) and sending its list of primes back to the
+	original process.
+      \item Receive the lists of primes from the spawned processes and concatenate these lists to
+	return a list of \code{N} primes from the interval \code{[Lo, Hi]}.
+    \end{itemize}
+    The worker processes should terminate after they complete their computation.
+
+    You should explicitly spawn the processes, and write the expressions for sending and receiving messages.
+    While this functionality is present in the \code{workers} and \code{wtree} modules in the class library,
+    we're asking you do implement the spawning, sending, and receiving here to get some experience with that
+    level of message passing.  All processes that you spawn should terminate when you \code{par\_primes} returns
+    a result.
+
+    \begin{enumerate}
+      \item \textbf{15 points})
+	Implement \code{par\_primes} as described above.
+      \item \textbf{5 points}) Describe the design and coding choices
+	you made in implementing \code{par\_primes}.  This should explain
+	\emph{why} you did what you did so that another programmer can
+	understand your implementation.
+
+  \begin{answer}
+  I determined the chunk size (range of values for each process to find primes) by taking $(Hi - Lo) div NW$.
+  I then determined  number of primes for each process to find (Dist\_N: N div NW). \\
+
+  Using recursion I then generated a list of tuples that contain each processes find\_primes parameters \{Lo, Hi, N\}. 
+  The last worker will be allocated the remaining range and final required prime count, as Dist\_N and chunk size are calculated by integer division.
+  The reason i decide to make a list of tuples was to make it clear that the final process can potentially have different parameters than the rest. \\
+
+  These parameters are then distributed to each process along with the parent process PID.
+  The child processes responsibilities are to perform find\_primes with the tuple parameters and send back the resulting list to the parent process.
+  After initiating the child processes the parent process waits until it receives NW messages (prime lists) which it then concatenates for a final result. \\
+
+  I beleive the way I implemented this would be quite clear to another programmer.
+  The function determines what each processes parameters will be. It then distributes them to the child processes. 
+  Then it waits for the child processes results and concatenates them once they are received. 
+  \end{answer}
+
+      \item \textbf{(3 points)} How many primes can you find in roughly one second without parallelism (i.e.\ just calling
+	\code{find\_primes}?  Or with the parallel version using 4, 16, 32, 64, 128, and 256 processes?
+	Make your measurements with \code{Lo = 3*ipow(2, 126)} and \code{Hi = 5*ipow(2, 126)}
+	and experiment with \code{N} to get a runtime between 0.8 and 1.2 seconds.
+	Please include a table of your raw timing measurements with your answer.
+	There can be fairly large variation in the time for multiple runs with the same parameters
+	(garbage collection?  the JIT?).  Please report raw data for five runs and take the median
+	as your result.
+
+  \begin{answer}
+    \begin{table}[H]
+    \centering
+    \caption*{Raw timing measurements for prime finding (5 runs each)}
+    \begin{tabular}{|c|c|c|c|c|c|c|c|}
+    \hline
+    \textbf{Processes} & \textbf{N} & \textbf{Run 1 (s)} & \textbf{Run 2 (s)} & \textbf{Run 3 (s)} & \textbf{Run 4 (s)} & \textbf{Run 5 (s)} & \textbf{Median (s)} \\
+    \hline
+    1 & 4 & 1.010951936 & 0.93631317 & 0.598891194 & 0.59173145 & 1.127399569 & 0.93631317 \\
+    \hline
+    4 & 18 & 0.929759773 & 1.066448848 & 1.29105436 & 0.928523512 & 0.929615669 & 0.929759773 \\
+    \hline
+    16 & 48 & 1.228194118 & 0.893906001 & 1.089954106 & 0.880925032 & 0.880491354 & 0.893906001 \\
+    \hline
+    32 & 40 & 0.811876568 & 0.90504187 & 0.911346981 & 0.892690169 & 1.123916501 & 0.90504187 \\
+    \hline
+    64 & 5 & 0.778705963 & 1.110071623 & 0.942384648 & 1.025461248 & 0.765391669 & 0.942384648 \\
+    \hline
+    128 & 5 & 0.80909066 & 0.833694351 & 0.724388188 & 0.751066255 & 1.145443598 & 0.80909066 \\
+    \hline
+    \end{tabular}
+    \end{table}
+  \end{answer}
+      \item \textbf{(2 points)} If we take speed-up to mean the ratio of \emph{throughput}, i.e.
+	\begin{displaymath}
+	  \frac{\textrm{\textit{PrimesFoundPerSecond} with \code{NW} processes}}{
+	    \textrm{\textit{PrimesFoundPerSecond} with one process}}
+	\end{displaymath}
+	What choice for \code{NW} (from 4, 16, 32, 64, 128, 256) gets the highest speed-up?
+	What is this peak speed-up?
+	Feel free to try other values for \code{NW} if you want, but this isn't
+	required to get full credit.  You do need to report results for
+	the six values for \code{NW} given above to get full credit.
+
+        \begin{table}[H]
+        \centering
+        \caption*{Speed-up analysis for parallel prime finding}
+        \begin{tabular}{|c|c|c|c|c|}
+        \hline
+        \textbf{Processes} & \textbf{N} & \textbf{Median Time (s)} & \textbf{Primes/Second} & \textbf{Speed-up} \\
+        \hline
+        1 & 4 & 0.93631317 & 4.272 & 1.000 \\
+        \hline
+        4 & 18 & 0.929759773 & 19.360 & 4.532 \\
+        \hline
+        16 & 48 & 0.893906001 & 53.697 & 12.569 \\
+        \hline
+        32 & 40 & 0.90504187 & 44.197 & 10.346 \\
+        \hline
+        64 & 5 & 0.942384648 & 5.306 & 1.242 \\
+        \hline
+        128 & 5 & 0.80909066 & 6.180 & 1.447 \\
+        \hline
+        \end{tabular}
+        \end{table}
+
+        The \code{NW} that gets the highest speed-up is \textbf{16 processes} with a peak speed-up of \textbf{12.569}.
+    \end{enumerate}
+
+\end{enumerate}
+
+
+\section{Supporting Materials}
+  \begin{description}
+    \item{\textbf{Section~\ref{sec:why}}} gives a brief summary of the motivation for each question on this assignment.
+    \item{\textbf{Section~\ref{sec:numb}}} sketches the number-theory used in the Rabin-Miller algorithm.
+    \item{\textbf{Section~\ref{sec:code}}} describes coding guidelines for CPSC 418.
+  \end{description}
+
+\subsection{Why?}\label{sec:why}
+  \begin{description}
+    \item{\textbf{Question~\ref{q:collab}}}:\\
+      The course collaboration and plagiarism policies were stated in the
+      \hrefc{https://www.students.cs.ubc.ca/~cs-418/2024-2/lecture/01-06/slides.pdf}{Jan.\ 6}
+      lecture: collaboration is good; plagiarism is bad.
+      This Question makes collaboration explicit, and plagiarism remains seriously bad.
+         
+    \item{\textbf{Question~\ref{q:patterns}}}:\\
+      This question was inspired by questions asked after lecture on January 8.
+      The reason is to get you some practice on ``eye-brain'' coordination so that patterns
+      become easy to read if you haven't programmed in language with patterns before.
+      This should help you see how you can write your functions with patterns rather than lots
+      of \code{if} expressions.
+      \par
+      I thought of putting function templates in \code{hw1.erl} but decided against it because
+      you could fill-in the code so the Erlang compiler and run-time would do all the matching
+      and you wouldn't have to think about it.
+      Furthermore, the Erlang compiler generates a warning if there is some pattern for which
+      anything that would match that pattern would match an earlier pattern.
+      There isn't a way to write a function that has a clause for each pattern from
+      Questions~\ref{q:patterns} what doesn't trigger such a warning.
+      \par
+      Even though I didn't provide you with function templates for this question,
+      I \emph{strongly} encourage you to write your own functions that use these
+      patterns.  Then try calling them with the different \code{Values} from the table,
+      or try your own values.  This should help you bettern understand how pattern matching works.
+
+    \item{\textbf{Question~\ref{q:russian}}}: \code{mpow}\\
+      Russian-Peasant is a cool way to exponentiate -- so, you should see it.
+      Also, the Rabin-Miller primality test would be very slow if we didn't have a fast algorithm
+      for exponentiation.
+      Needs a bit more thought to write the code than the brute-force method.
+      \par
+      Note: I had considered asking you to measure the times for \code{mpow(X, N, M)} when \code{M}
+      is larger than a single machine word (e.g., needs 1024 to 2048 bits for RSA-2048 keys).
+      I've run some more measurements.
+      Erlang appears to use a brute-force $\bigO(log(N)\log(M))$ algorithm for computing the product
+      of $M$ time $N$.
+
+    \item{\textbf{Question~\ref{q:rabin-miller}}}: Rabin-Miller\\
+      Another cool algorithm.  
+      Brings up more implementation design issues; so, it's a natural next step for bringing everyone
+      up-to-speed with programming in Erlang.  BTW, if you don't like my ``functional'' presentation of
+      the algorithm, look up the Wikipedia entry (or other on-line sources) and you'll find pseudo-code
+      with for-loops.  Of course, make sure you cite your sources when you submit your solution.
+
+    \item{\textbf{Question~\ref{q:find}}}: \code{find\_primes}\\
+      Mostly just a step to get to the parallel version in Questions~\ref{q:par}.
+      In other words, if your parallel version doesn't call \code{find\_primes},
+      you probably did too much work.
+
+    \item{\textbf{Question~\ref{q:par}}}: \code{par\_primes}\\
+      This is a course on parallel programming.  So, here's something you can do in parallel.
+
+  \end{description}
+
+\subsection{Details on Rabin-Miller}\label{sec:numb}
+  My goal here is to take the ``magic'' out of the algorithm and keep everything simple and informal.
+  Anyone who has taken MATH 312 or similar has probably seen all of these theorems before and may
+  want to skip this section, especially if you're easily offended by informality.
+  In the following, I will write $X \equivp Y$ to denote $(X \bmod P) = (Y \bmod P)$.
+
+\subsubsection{Fermat's Little Theorem}\label{sec:flt}
+  Not to be confused  with Fermat's Last Theorem which is much harder to prove.
+  OTOH, the ``Little Theorem'' wins for being useful.
+  \begin{quote}
+    \emph{Fermat's Little Theorem:}
+    If $P$ is prime, and $A$ is an integer that is not a multiple of $P$, then
+    \begin{displaymath}\begin{array}{lrcl}
+      A^{P-1} \equivp &=& 1
+    \end{array}\end{displaymath}
+  \end{quote}
+  When reasoning about arithmetic $\bmod~P$, it is sufficient just to consider values in $\{0, \ldots, (P-1)\}$.
+  If $A$ is such an integer, and $A$ is not a multiple of $P$, that just means that $A$ is in $\{1, \ldots, (P-1)\}$.
+  Let $S_P$ be the set $\{1, \ldots, (P-1)\}$.
+  \begin{enumerate}
+    \item If $A \in S_P$, then for any integer $i \geq 0$, then $A^i \in S_P$.
+      This is because $P$ is prime, and the product of any two positive integers that are less than $P$ cannot be
+      a multiple of $P$.
+    \item If $A \in S_P$, then all elements of the sequence $A^0 \bmod P,\ A^1 \bmod P,\; A^2 \bmod P, \ldots$
+      must be elements of $S_P$.  By the pigeon-hole principle, there must be some value, $B$ that appears
+      multple times in the sequence.  Choose $B$ to be the first such state (note: we could show $B = 1$, but
+      that's slightly more work).  Let $C$ be the length of the cycle.  I.e.\ $C$ is the smallest integer
+      such that $B \equivp B*A^C$.  Thus, $B, B*A \bmod P, B*A^2 \bmod P, \ldots, B*A^C \bmod P$ are a cycle.
+    \item Now we show that $C$ must be a factor of $P-1$.  If $C = P-1$, then we're done.
+      Otherwise, choose some element of $S_P$ that is not in the cycle, call it $D$.
+      The sequence $D*A^0 \bmod P, D*A^1 \bmod P, \ldots D*A^C \bmod P$ must form a new cycle where
+      no elements on this new cycle are elements of the original cycle.
+      We can keep doing this until every element of $S_P$ is an element of one of these cycles;
+      these cycles are all disjoint; and all cycles have length $C$.
+      Thus, if $E \in S_P$, $E*A^C \equivp E$ which implies $A^C \equivp 1$.
+    \item Let $F$ be the total number of cycles found above.  Because every element of $S_P$ is on exactly
+      one cycle, $F*C = |S_P| = P-1$.  Therefore
+      \begin{displaymath}
+	A^{P-1} \equivp \left(A^C\right)^F \equivp 1^F = 1
+      \end{displaymath}
+      This completes the proof.
+  \end{enumerate}
+  %
+  \noindent%
+  \textbf{The Fermat Test -- some examples}\\
+  If \code{Q} is an alleged prime, we'll can randomly choose some \code{A} in $\{2, \ldots, Q-1\}$
+  and check if \code{mpow(A, Q-1, Q) == 1}.  We'll call this the \emph{Fermat-test}.
+  For example, \code{11} is prime; and \code{5} is an integer that is not a multiple of \code{11};
+  and the Fermat test yields:
+  \begin{displaymath}\begin{array}{rcl}
+    \code{mpow(5, 10, 11)} &=& \code{misc:mod(ipow(5, 10), 11)}\\
+			   &=& \code{misc:mod(9765625, 11)}\\
+			   &=& \code{misc:mod(887784*11 + 1, 11)}\\
+			   &=& 1.
+  \end{array}\end{displaymath}
+   Most of the time, $A^{Q-1} \nequivq 1$ if $Q$ is not prime, for example,
+   For example, \code{12} is not prime; \code{5} is an integer that is not a multiple of \code{12}; and
+   \begin{displaymath}\begin{array}{rcl}
+     \code{mpow(5, 11, 12)} &=& \code{misc:mod(ipow(5, 11), 12)}\\
+			    &=& \code{misc:mod(48828125, 12)}\\
+			    &=& \code{misc:mod(4069010*12 + 5, 12)}\\
+			    &=& 5.
+   \end{array}\end{displaymath}
+   Thus, \code{12} fails the Fermat-test, and we have shown that \code{12} is not prime.
+
+   Unfortunately, there are numbers called
+   \hrefc{https://en.wikipedia.org/wiki/Fermat_pseudoprime}{Fermat pseudoprimes} that are composite,
+   but pass the Fermat test for at least one choice of \code{A}.
+   For example, \code{21} is not prime, \code{13} in an integer that is not a multiple of \code{21}, and
+   \begin{displaymath}\begin{array}{rcl}
+     \code{mpow(13, 20, 21)} &=& \code{misc:mod(ipow(13, 20), 21)}\\
+			     &=& \code{misc:mod(19004963774880799438801, 21)}\\
+			     &=& \code{misc:mod(904998274994323782800*21 + 1, 21)}\\
+			     &=& 1.
+   \end{array}\end{displaymath}
+   In fact, there are pathological choices for \code{Q} where \code{Q} is composite and
+   \code{mpow(A, (Q-1), Q) = 1} for all integers \code{A} that are not multiples of \code{Q}.
+   Such numbers are called
+   \hrefc{https://en.wikipedia.org/wiki/Carmichael_number}{Carmichael numbers}.
+   561 is the smallest Carmichael number.
+
+\subsubsection{The square-root of 1 ($\bmod~P$)}\label{sec:sqrt}
+  \begin{quote}\it
+    If $P$ is a prime and $A$ is an integer such that $A*A \bmod P = 1$,
+    then either $A \bmod P = 1$ or $A \bmod P = P-1$.
+  \end{quote}
+  Proof.  Let $A$ be an integer such that $A*A \equivp 1$.
+  \begin{displaymath}\begin{array}{rcll}
+    A*A &\equivp& 1, & \textrm{given}\\
+    A*A - 1 &\equivp& 0, & \textrm{subtract 1 from both sides}\\
+    (A+1)*(A-1) &\equivp& 0, & \textrm{factoring}\\
+  \end{array}\end{displaymath}
+  If the product of integers $X$ and $Y$ is a multiple of a prime, at least one of
+  $X$ or $Y$ must be a multiple of $P$.  Therefore, either $(A+1)$ or $(A-1)$ must be
+  a multiple of $P$ which proves the claim.
+  %
+  \par\noindent%
+  \textbf{The Square Test -- some examples}\\
+  The contrapositive of the observation that we made above is that if we can
+  find an integer $A$ such that $A \nequivq 1$, $A \nequivq Q-1$, and $A*A \equivq = 1$,
+  then $Q$ is not prime.  We call this the \emph{square-test}.
+
+  As described in the Question~\ref{q:rabin-miller}, the Rabin-Miller algorithm factors
+  \code{Q-1 = D*ipow(2, S)} and computes \code{mpow(A, Q-1, Q)} by first computing
+  \code{mpow(A, D, Q)} and squaring the result \code{S} times.  If they observe a value, \code{X},
+  such that $\code{X} \nequivq  1$, $\code{X} \nequivq (\code{Q}-1)$, and  $\code{X*X} \equivq 1$,
+  then by the square-test, \code{Q} is not a prime.
+  OTOH, if after squaring \code{S} times, they don't reach \code{1}, then by the Fermat-test,
+  \code{Q} is not prime.
+  The proof that this fails with a probability of at most $\frac{1}{4}$ and that trials are
+  independent for independently chosen values of \code{A} is beyond the scope of this description.
+
+  Going back to our previous example of showing that \code{21} passes the Fermat test when
+  \code{A=13}.  For the Rabin-Miller test:
+   \begin{displaymath}\begin{array}{rcl}
+     \code{Q}                &=& 21\\
+     \code{Q-1}              &=& 20\\
+     \code{D}                &=& 5\\
+     \code{S}                &=& 2\\
+     \code{A}                &=& 13\\
+     \code{mpow(13, 5, 21)}  &=& 13\\
+     \code{misc:mod(13*13, 21)} &=& 1
+   \end{array}\end{displaymath}
+   The square-test fails, and Rabin-Miller refutes the primality of \code{21}.
+
+\section*{The Library, Errors, Guards, and other good stuff}\label{sec:code}
+\textbf{The CPSC 418 Erlang Library}: your code \emph{must} run on the CS department linux machines.
+
+To access the course library from the CS department machines, give the following command in the Erlang shell:
+\begin{xcode}
+  \eprompt{} \addpath{}("/home/c/cs-418/public\_html/resources/erl").
+\end{xcode}
+You can also set the path from the command line when you start Erlang.  I've
+included the following in my \texttt{.bashrc} so that I don't have to set the
+code path manually each time I start Erlang:
+\begin{xcode}
+  function erl \{\\
+  \>/usr/bin/erl erl -eval '\addpath{}("/home/c/cs-418/public\_html/resources/erl")' "\$@"
+  \}  
+\end{xcode}
+See \urlc{http://erlang.org/doc/man/erl.html} for a more detailed description of
+the \texttt{erl} command and the options it takes.
+
+If you are running Erlang on your own computer, you can get a copy of the course library from\\
+\rule{1.5em}{0ex}\urlc{http://www.students.cs.ubc.ca/~cs-418/resources/erl/erl.tgz}\\
+Unpack it in a directory of your choice, and use \code{\addpath{}} as described above
+to use it.  Changes may be made to the library to add features or fix bugs as the term progresses.
+I try to minimize the disruption and will announce any such changes.
+
+\textbf{Compiler Errors}: if your code doesn't compile, it is likely that you
+will get a zero on all coding questions.
+Please do not submit code that does not compile successfully.
+After grading all assignments that compile successfully,
+we \emph{might} look at some of the ones that don't.
+This is entirely up to the discretion of the instructor.
+If you have half-written code that doesn't compile, please comment
+it out or delete it.
+
+\textbf{Compiler Warnings}: your code should compile without warnings.
+In my experience, most of the Erlang compiler warnings point to real problems.
+For example, if the compiler complains about an unused variable, that often
+means I made a typo later in the function and referred to the wrong variable,
+and ended up not using the one I wanted.  Of course, the ``base case'' in recursive
+function often has unused parameters -- use a \code{\_} to mark these as unused.
+Other warnings such as functions that are defined but not used, the wrong number
+of arguments to an
+\code{\hrefc{http://erlang.org/doc/man/io.html\#format-2}{io:format}}
+call, etc., generally point to real mistakes
+in the code.  We will take off points for compiler warnings.
+
+\textbf{Printing to stdout}: please don't unless we specifically ask you to do so.
+If you include a \emph{short} error message when throwing an error, that's
+fine, but not required.  If you print \emph{anything} for a case with normal
+execution when no printing was specified, we will take off points.
+
+\textbf{Guards}: in general, guards are a good idea.
+If you use guards, then your code will tend to fail close to the actual error, and
+that makes debugging easier.
+Guards also make your intentions and assumptions part of the code.
+Documenting your assumptions in this way makes it much easier if someone else needs
+to work with your code, or if you need to work with your code a few months or a few
+years after you originally wrote it.
+There are some cases where adding guards would cause the code to run much slower.
+In those cases, it can be reasonable to use comments instead of guards.
+Here are a few rules for adding guards:
+\begin{itemize}
+  \item If you need the guard to write easy-to-read patterns, use the guard.
+    For example, to have separate cases for \code{N > 0} and \code{N < 0}.
+  \item If adding the guard makes your code easier to read (and doesn't have a
+    significant run-time penalty), use the guard.
+  \item If a function is an ``entry point'' into your code (e.g.\ an exported function)
+    it's good to have your assumptions about arguments clearly stated.  Ideally, you
+    this with guards, that is great.  
+    \begin{itemize}
+      \item Often, a function can only be implemented for \emph{some} values of its arguments.
+	For example, we might have:
+	\begin{SmallCode}
+	  sendSquare(Pid, N) -> Pid ! N*N.
+	\end{SmallCode}
+	A call such as \code{SendSquare([1, 2, 3], cow)} doesn't make sense.
+	Bad calls should throw an error (e.g.\ a \code{badarg} error).
+	Please, don't silently ignore bad arguments, for example
+	\begin{SmallCode}
+	  sendSquare(Pid, N) ->\\
+	  \> if \=is\_pid(Pid) and is\_number(N) -> Pid~!~\tuple{square, N*N};\\
+	  \>    \>true -> "messed up actual arguments" \xcomment{\textcolor{red}{Don't do this.}}\\
+	  \> end\\
+	  end.
+	\end{SmallCode}
+	The caller might very well ignore the return value of \code{SendSquare}, and
+	\code{Pid} might end up blocking, waiting for a message that will never arrive.
+	Furthermore, putting tests to see if the return value is an error code is so C,
+	but throwing explicit exceptions and writing error handlers (if you want to do
+	something other than killing the process that threw the error) is so much easier
+	to write, read, and maintain.
+	\par
+	We will test your code on bad arguments and make sure that an error gets thrown.
+    \end{itemize}
+  \item Adding lots of little guards to every helper function can clutter your code.
+    Write the code that you would want others to write if you are going to read it.
+  \item In some cases, guards can cause a severe performance penalty.
+    In that case, it's better to use a wrapper function so you can test the guards once
+    and then go on from there. Or you can use comments; comments don't slow down the code.
+    Any exported function should throw an error when called with bad arguments.
+\end{itemize}
+
+
+A common case for omitting guards occurs with tail-recursive functions.
+We often write a wrapper function that initializes the ``accumulator'' and
+then calls the tail-recursive code.
+We export the wrapper, but the tail-recursive part is not exported because
+the user doesn't need to know the details of the tail-recursive implementation.
+In this case, it makes sense to declare the guards for the wrapper function.
+If those guarantee the guards for the tail-recursive code, and the tail
+recursive code can only be called from inside its module, then we can omit
+the guards for the tail-recursive version.  This way, the guards get checked
+once, but hold for all of the recursive calls.  Doing this gives us the
+robustness of guard checking \textbf{and} the speed of tail recursion.\medskip
+
+\vfill
+\parbox{0.16\textwidth}{
+  \includegraphics[width=0.16\textwidth]{cc-by}
+}\hfill\parbox{0.80\textwidth}{
+  \footnotesize
+  Unless otherwise noted or cited, 
+  the questions and other material in this homework problem set
+  is copyright 2024 by Mark Greenstreet
+  and are made available under the terms of the Creative Commons
+  Attribution 4.0 International license
+  \url{http://creativecommons.org/licenses/by/4.0/}
+}
+\end{document}
