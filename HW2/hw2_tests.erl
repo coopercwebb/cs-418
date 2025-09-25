@@ -4,7 +4,14 @@
 
 % We don't export whatever_test/0 because the EUnit macros do that and we'll
 % provoke a warning message if we export them here as well.
--export([reduce_test/1, scan_test/1, light_actions/1, light_actions/2, light_ref/3]).
+-export([reduce_test/1, scan_test/1]).
+
+% I added the export of plus_fun/0 so you can try the test
+% cases interactively by cut-and-pasting code into the Erlang shell.
+% I added the export of you_need_to_write_a_test/1 so this module
+% will compile without warnings when you have added your tests and
+% you_need_to_write_a_test/1 is no longer called.
+-export([plus_fun/0, you_need_to_write_a_test_/1]).
 
 -import(hw2_lib, [you_need_to_write_this/2]).
 
@@ -47,7 +54,7 @@ reduce_test(NProcs) when is_integer(NProcs), 0 < NProcs ->
   hw2:create(NProcs,
 	     fun(ProcInfo) ->
 		 I = hw2:proc_index(ProcInfo),
-		 Total = hw2:reduce(ProcInfo, plus_fun(), I),
+		 Total = hw2:reduce(ProcInfo, hw2_tests:plus_fun(), I),
 		 case I of
 		   1 -> MasterPid ! {self(), reduce_test, Total};
 		   _ -> ok
@@ -66,14 +73,14 @@ scan_test(NProcs) when is_integer(NProcs), 0 < NProcs ->
   ConcatFun = fun(X, Y) -> X++Y end,
   RootPid = hw2:create(NProcs,
 		       fun(ProcInfo) ->
-			   I = hw2:scan(ProcInfo, plus_fun(), 0, 1),
+			   I = hw2:scan(ProcInfo, hw2_tests:plus_fun(), 0, 1),
 			   hw2_lib:swap_data_with_master(ProcInfo, I),
 			   J = hw2:scan(ProcInfo, ConcatFun, [], [I]),
 			   hw2_lib:swap_data_with_master(ProcInfo, J)
 		       end),
   II = lists:seq(0, NProcs-1),
   ?assertEqual(II, hw2_lib:swap_data_with_tree(RootPid, [ok || _ <- II])),
-  {JJ,_} = lists:mapfoldl(fun(X, Acc) -> {Acc, Acc+X} end, 0, I),
+  {JJ,_} = lists:mapfoldl(fun(X, Acc) -> {Acc, Acc++[X]} end, [], II),
   ?assertEqual(JJ, hw2_lib:swap_data_with_tree(RootPid, [ok || _ <- JJ])),
 
   % Q1.b  add a test case with a CombineFun that is both associative and commutative.
@@ -82,7 +89,7 @@ scan_test(NProcs) when is_integer(NProcs), 0 < NProcs ->
   
   % Q1.c  add a test case with a CombineFun that is associative but *not* commutative.
   you_need_to_write_this(q1c,
-    ["test hw2:scan with a CombineFun that is both associative but not commutative"]).
+    ["test hw2:scan with a CombineFun that is associative but not commutative"]).
 
 scan_test() -> scan_test(8).
 
@@ -92,14 +99,14 @@ plus_fun() -> fun(X, Y) -> X+Y end.
 moose_leaf_test() ->
   you_need_to_write_this(moose_leaf_test,
     [ "Write at least three tests here for moose_leaf(ProcState, Key).",
-      "I haven't provided any examples because these tests depends on the data structure " ++
-      "that you came up with for using with moose_combine." ]).
+      "I haven't provided any examples because these tests depends on " ++
+      "the data structure that you came up with for using with moose_combine." ]).
 
 moose_combine_test() ->
   you_need_to_write_this(moose_combine_test,
     [ "Write at least three tests here for moose_combine(Left, Right).",
-      "I haven't provided any examples because these tests depends on the data structure " ++
-      "that you came up with for using with moose_combine." ]).
+      "I haven't provided any examples because these tests depends on " ++
+      "the data structure that you came up with for using with moose_combine." ]).
 
 moose_par_test_() ->
   [ moose_par_test_(4,
@@ -137,75 +144,6 @@ moose_par_test_(NWorkers, Data)
       ?_assertEqual(hw2:moose_ref(WorkerTree, data),
 		   hw2:moose_par(WorkerTree, data))
     end }.
-
-
-
-% light_combine_test()
-%   Exhaustively test light_combine.
-light_combine_test() ->
-  F = [turn_off, slack, flip, turn_on],
-  [    ?assertEqual(hw2:light(F2, hw2:light(F1, X)),
-		     hw2:light(hw2:light_combine(F1, F2), X))
-    || F1 <- F, F2 <- F, X <- [false, true] ].
-
-% light_combine_test()
-%   Show that light_combine is associative using exhausitive tests.
-light_combine_assoc_test() ->
-  you_need_to_write_this(light_combine_assoc_test, []).
-
-
-light_par_test_() ->
-  [ light_par_test_(4,
-      [ [slack,flip,turn_off,slack,turn_on],
-	[slack,slack,slack,flip,turn_off],
-	[slack,flip,flip,slack,slack],
-	[turn_on,turn_off,slack,turn_on,flip]], false)
-  ].
-
-
-% moose_par_test is an example of an EUnit test fixture
-light_par_test_(NWorkers, Data, LightInit)
-    when is_integer(NWorkers), 0 < NWorkers, length(Data) == NWorkers ->
-  { setup,
-    fun() -> % set-up the test fixture
-	WorkerTree = wtree:create(NWorkers),
-	wtree:update(WorkerTree, data, Data),
-	WorkerTree
-    end,
-    fun(WorkerTree) -> % clean-up after the tests are run.
-	               %clean-up runs even if the tests fail or abort.
-	wtree:reap(WorkerTree)
-    end,
-    fun(WorkerTree) -> % the test(s) to perform
-      ?_assertEqual(light_ref(WorkerTree, data, LightInit),
-		    hw2:light_par(WorkerTree, data, LightInit))
-    end }.
-
-% reference version for testing light_par_test.
-light_ref(WorkerTree, Key, LightInit) ->
-  Data = lists:append(wtree:retrieve(WorkerTree, Key)),
-  hw2:light_seq(Data, LightInit).
-
-
-% light_actions(N) -> ActionList
-%   Generate a list of actions for testing the light_XXX functions.
-%   If 1 =< N =< 3, light_actions generates a pre-defind list of actions.
-%   If N > 3, then light_actions generates a random list of N actions.
-light_actions(1) ->
-  [ slack, flip, slack, flip, flip];
-light_actions(2) ->
-  [ slack, flip, turn_on, flip, flip];
-light_actions(3) ->
-  [ slack, flip, turn_on, flip, turn_on, flip];
-light_actions(N) when is_integer(N), 0 =< N ->
-  light_actions(N, {slack, flip, turn_on, turn_off}).
-
-% light_actions(N, A_tuple) -> ActionList
-%   Generate a random list of N actions where each action is an element
-%   of A_tuple.  This lets you generate test cases that only use a subset
-%   of the possible actions.
-light_actions(N, A) when is_integer(N), 0 =< N, is_tuple(A) ->
-  [ element(rand:uniform(tuple_size(A)), A) || _ <- lists:seq(1, N)]. 
 
 
 
