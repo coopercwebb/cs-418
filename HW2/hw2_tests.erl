@@ -84,17 +84,44 @@ scan_test(NProcs) when is_integer(NProcs), 0 < NProcs ->
   ?assertEqual(JJ, hw2_lib:swap_data_with_tree(RootPid, [ok || _ <- JJ])),
 
   % Q1.b  add a test case with a CombineFun that is both associative and commutative.
-  you_need_to_write_this(q1b,
-    ["test hw2:scan with a CombineFun that is both associative and commutative"]),
-  
+  % Multiplication
+  RootPid2 = hw2:create(NProcs,
+		       fun(ProcInfo) ->
+         I = hw2:proc_index(ProcInfo),
+			   K = hw2:scan(ProcInfo, prod_fun(), 1, I),
+			   hw2_lib:swap_data_with_master(ProcInfo, K),
+			   L = hw2:scan(ProcInfo, ConcatFun, [], [K]),
+			   hw2_lib:swap_data_with_master(ProcInfo, L)
+		       end),
+
+  {KK_tail, _} = lists:mapfoldl(fun(X, Prod) -> {X*Prod, X*Prod} end, 1, lists:seq(1,NProcs - 1)),
+  KK = [1 | KK_tail],
+  ?assertEqual(KK, hw2_lib:swap_data_with_tree(RootPid2, [ok || _ <- KK])),
+  {LL,_} = lists:mapfoldl(fun(X, Acc) -> {Acc, Acc++[X]} end, [], KK),
+  ?assertEqual(LL, hw2_lib:swap_data_with_tree(RootPid2, [ok || _ <- LL])),
+
   % Q1.c  add a test case with a CombineFun that is associative but *not* commutative.
-  you_need_to_write_this(q1c,
-    ["test hw2:scan with a CombineFun that is associative but not commutative"]).
+  % String Concatenation 
+  RootPid3 = hw2:create(NProcs,
+        fun(ProcInfo) ->
+      I = integer_to_list(hw2:proc_index(ProcInfo)),
+      M = hw2:scan(ProcInfo, ConcatFun, "", I),
+      hw2_lib:swap_data_with_master(ProcInfo, M),
+      N = hw2:scan(ProcInfo, ConcatFun, [], [M]),
+      hw2_lib:swap_data_with_master(ProcInfo, N)
+        end),
+
+  MM_preconcat = [integer_to_list(X) || X <- lists:seq(1, NProcs)],
+  {MM,_} = lists:mapfoldl(fun(X, Acc) -> {Acc, Acc++X} end, "", MM_preconcat),
+  ?assertEqual(MM, hw2_lib:swap_data_with_tree(RootPid3, [ok || _ <- MM])),
+  {NN,_} = lists:mapfoldl(fun(X, Acc) -> {Acc, Acc++[X]} end, [], MM),
+  ?assertEqual(NN, hw2_lib:swap_data_with_tree(RootPid3, [ok || _ <- NN])).
 
 scan_test() -> scan_test(8).
 
 plus_fun() -> fun(X, Y) -> X+Y end.
 
+prod_fun() -> fun(X, Y) -> X*Y end.
 
 moose_leaf_test() ->
   you_need_to_write_this(moose_leaf_test,
