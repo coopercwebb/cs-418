@@ -51,7 +51,7 @@ create(N, Parent, MyIndex, ChildPids, Task) when is_integer(N), 1 < N ->
 reduce(ProcInfo, CombineFun, Value) ->
   reduce(parent_pid(ProcInfo), child_pids(ProcInfo), CombineFun, Value).
 
-reduce({_}, [], _, GrandTotal) -> GrandTotal;
+reduce({_MasterPid}, [], _, GrandTotal) -> GrandTotal;
 reduce(ParentPid, [], _, MyTotal) ->
   ParentPid ! {self(), reduce_up, MyTotal},
   receive
@@ -69,7 +69,23 @@ reduce(Parent, [ChildHd | ChildTl], CombineFun, LeftTotal) ->
 
 % Q1: Implement a Lin & Snyder style exclusive scan.
 scan(ProcInfo, CombineFun, AccIn, Value) -> % CombineFun of all values preceding this one
-  hw2_lib:you_need_to_write_this(scan, [ProcInfo, CombineFun, AccIn, Value]).
+  scan(parent_pid(ProcInfo), child_pids(ProcInfo), CombineFun, AccIn, Value).
+
+scan({_MasterPid}, [], _, AccIn, _) -> AccIn;
+scan(ParentPid, [], _, _, MyTotal) ->
+  ParentPid ! {self(), scan_up, MyTotal},
+  receive
+    {ParentPid, scan_down, ScanVal} -> 
+      ScanVal
+  end;
+scan(Parent, [ChildHd | ChildTl], CombineFun, AccIn, LeftTotal) ->
+  receive
+    {ChildHd, scan_up, RightTotal} ->
+      ParentVal =
+        scan(Parent, ChildTl, CombineFun, AccIn, CombineFun(LeftTotal, RightTotal)),
+      ChildHd ! {self(), scan_down, CombineFun(ParentVal, LeftTotal)},
+      ParentVal
+  end.
 
 
 
