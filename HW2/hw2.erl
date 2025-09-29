@@ -109,7 +109,20 @@ moose_ref(WorkerTree, Key) ->
 % description of your implementation of moose_leaf, moose_combine
 % and moose_par below.
 %
-% Your design documentation comment goes here.
+% This implementation uses the standard tree reduce pattern from the September 13 lecture.
+% It uses a similar summary pattern to the {LeftSummary, OverallSummary, RightSummary} tuple described, 
+% as substring detection problems are associative but not communative (order of leaves matters).
+% 
+% Data Type: The Leaf and Combine functions operate on tuples of type {integer(), string(), string()}
+% representing {OverallCount, PrefixUpTo4Chars, SuffixUpTo4Chars}.
+%
+% - moose_leaf: Computes local moose count and extracts the boundary strings (first/last 4 chars)
+% - moose_combine: Associative operation that sums individual counts of left and right workers plus boundary-spanning strings
+%   by checking if left_suffix + right_prefix contains "moose"
+% - moose_par: Uses wtree:reduce with moose_leaf as the leaf function and moose_combine as combine
+%
+%  The 4-character prefix/suffix tracking catches "moose" strings spanning workers.
+%  When combining small chunks, it extends the prefix/suffix by concatenating (left_prefix + right_prefix, left_suffix + right_suffix).
 
 
 % Q2.b: implement moose_leaf

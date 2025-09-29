@@ -124,16 +124,18 @@ plus_fun() -> fun(X, Y) -> X+Y end.
 prod_fun() -> fun(X, Y) -> X*Y end.
 
 moose_leaf_test() ->
-  you_need_to_write_this(moose_leaf_test,
-    [ "Write at least three tests here for moose_leaf(ProcState, Key).",
-      "I haven't provided any examples because these tests depends on " ++
-      "the data structure that you came up with for using with moose_combine." ]).
+  [
+    moose_leaf_test("moose", {1, "moos", "oose"}),
+    moose_leaf_test("nothing here, but maybe half a moo", {0, "noth", " moo"}),
+    moose_leaf_test("sma", {0, "sma", "sma"})
+  ].
 
 moose_combine_test() ->
-  you_need_to_write_this(moose_combine_test,
-    [ "Write at least three tests here for moose_combine(Left, Right).",
-      "I haven't provided any examples because these tests depends on " ++
-      "the data structure that you came up with for using with moose_combine." ]).
+  [
+    moose_combine_test({2, "pref", "moos"}, {2, "emoo", "suff"}, {5, "pref", "suff"}),
+    moose_combine_test({0, "m", "m"}, {1, "o", "o"}, {1, "mo", "mo"}),
+    moose_combine_test({0, "oose", "moos"}, {0, "emoo", "semo"}, {1, "oose", "semo"})
+  ].
 
 moose_par_test_() ->
   [ moose_par_test_(4,
@@ -156,8 +158,8 @@ moose_par_test_() ->
       ["m", "o", "o", "s", "e"]
     ),
     moose_par_test_(10, 
-      ["m", "o", "o", "s", "e",
-        "m", "o", "o", "s", "e"]
+      ["o", "m", "m", "o", "o",
+        "s", "e", "o", "s", "e"]
     ),
     % nodes must propegate up large value (moos)
     moose_par_test_(7,
@@ -184,6 +186,28 @@ moose_par_test_(NWorkers, Data)
 		   hw2:moose_par(WorkerTree, data))
     end }.
 
+moose_leaf_test(String, Expected_Tuple) ->
+    {setup,
+        fun() ->
+            WorkerTree = wtree:create(1),
+            wtree:broadcast(WorkerTree, fun(ProcState) ->
+                workers:put(ProcState, "Key", String)
+            end),
+            WorkerTree
+        end,
+        fun(WorkerTree) -> 
+            wtree:reap(WorkerTree)
+        end,
+        fun(WorkerTree) -> 
+            [Result] = wtree:retrieve(WorkerTree, fun(ProcState) ->
+                ?_assertEqual(Expected_Tuple, hw2:moose_leaf(ProcState, "Key"))
+            end),
+            Result
+        end
+    }.
+
+moose_combine_test(Left, Right, Expected_Tuple) ->
+    ?_assertEqual(Expected_Tuple, hw2:moose_combine(Left, Right)).
 
 
 you_need_to_write_a_test_(Msg) ->
