@@ -151,7 +151,19 @@ moose_par_test_() ->
     moose_par_test_(8, misc:cut(moose:data(wikipedia), 8)),
     moose_par_test_(13, misc:cut(moose:data({random, 1234, 0.04, 0.08}), 13)),
 
-    you_need_to_write_a_test_("Add at least three more tests to moose_par_test_().")
+    % you_need_to_write_a_test_("Add at least three more tests to moose_par_test_().")
+    moose_par_test_(5, 
+      ["m", "o", "o", "s", "e"]
+    ),
+    moose_par_test_(10, 
+      ["m", "o", "o", "s", "e",
+        "m", "o", "o", "s", "e"]
+    ),
+    % nodes must propegate up large value (moos)
+    moose_par_test_(7,
+      ["a", "b", "c", "moos",
+        "emoo", "s", "e"]
+    )
   ].
 
 % moose_par_test is an example of an EUnit test fixture

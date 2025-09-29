@@ -113,14 +113,30 @@ moose_ref(WorkerTree, Key) ->
 
 
 % Q2.b: implement moose_leaf
+% Returns {Overall, Prefix, Suffix}
 moose_leaf(ProcState, Key) ->
-  you_need_to_write_this(moose_leaf, [ProcState, Key]).
+  Val = workers:get(ProcState, Key),
+  {moose_seq(Val), lists:sublist(Val, 4), suffix_n(Val, 4)}.
 
+suffix_n(String, N) ->
+    Length = length(String),
+    Start = max(1, Length - N + 1),
+    lists:sublist(String, Start, Length).
 
 % Q2.c: implement moose_combine
 moose_combine(Left, Right) ->
-  you_need_to_write_this(moose_combine, [Left, Right]).
-
+  {Left_Overall, Left_Prefix, Left_Suffix} = Left,
+  {Right_Overall, Right_Prefix, Right_Suffix} = Right,
+  Prefix = case length(Left_Prefix) < 4 of
+      true -> lists:sublist(lists:append(Left_Prefix, Right_Prefix), 4);
+      false -> Left_Prefix
+    end,
+  Suffix = case length(Right_Suffix) < 4 of 
+      true -> suffix_n(lists:append([Left_Suffix, Right_Suffix]), 4);
+      false -> Right_Suffix
+    end,
+  { Left_Overall + Right_Overall + moose_seq(lists:append(Left_Suffix, Right_Prefix)),
+    Prefix, Suffix }.
 
 % Q2.d: implement moose_par
 %
@@ -128,7 +144,10 @@ moose_combine(Left, Right) ->
 %   in the list associated with Key distributed across the workers of WorkerTree.
 %   Your solution should use wtree:reduce.
 moose_par(WorkerTree, Key) ->
-  you_need_to_write_this(moose_par, [WorkerTree, Key]).
+  {Overall, _, _} = wtree:reduce(WorkerTree, 
+    fun(ProcState) -> moose_leaf(ProcState, Key) end,
+    fun moose_combine/2),
+  Overall.
 
 
 % Q2.e: Now edit hw2_tests.erl and add test cases for moose_leaf,
