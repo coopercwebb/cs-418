@@ -1,0 +1,266 @@
+\documentclass{article}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{upquote}
+\usepackage{amssymb}
+\usepackage{wasysym}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{epsfig}
+\setlength{\oddsidemargin}{0in}\setlength{\textwidth}{6.5in}
+\setlength{\topmargin}{0.0in}\setlength{\textheight}{8.5in}
+\input{cs418-macros}
+\newcommand{\sq}{\textquotesingle}
+\newcommand{\bsq}[1]{\textquotesingle#1\textquotesingle}
+\newcommand{\srcdir}{https://www.students.cs.ubc.ca/~cs-418/2023-2/hw/3/src}
+\newcommand{\idiv}{\mathsf{div}}
+\newlength{\xlen}
+\newlength{\ylen}
+
+\newenvironment{answer}
+{\color{blue}}
+{\normalfont}
+
+\begin{document}
+\noindent%
+CpSc 418 \hfill \begin{tabular}[t]{c}{\Large\bf Homework 3}\smallskip\\
+  			Architecture and Midterm Review
+		    \end{tabular}
+	 \hfill \begin{tabular}[t]{l}Due: October 12, 2025, 11:59pm\\
+	                             Early-Bird: October 10, 2025, 11:59pm
+		\end{tabular}\bigskip\\
+\par\noindent%
+\section*{Prelude}
+Unlike last term, this homework is \textbf{not} optional.
+Your solution should contain:
+\begin{description}
+  \item{\texttt{hw3.pdf}}: PDF for your answers.
+  \item{\texttt{hw3.erl}}: Erlang code if you chose a problem that requires it.
+\end{description}
+
+\section{The Questions (75 points)}
+Do any three of the questions below.
+\begin{enumerate}
+  \item \textbf{Tail Recursive Functions} (\textbf{25 points})\\
+    \begin{enumerate}
+      \item (\textbf{5 points})\label{q:tail.c3s}
+	Consider our friend, the \code{count3s} function:
+	\begin{xcode}
+	  count3s([]) -> 0;\\
+	  count3s([3 | Tl]) -> 1 + count3s(Tl);\\
+	  count3s([\_ | Tl]) -> count3s(Tl);
+	\end{xcode}
+	Is \code{count3s} tail-recursive?\\
+	Why or why not?
+      \item (\textbf{5 points}) Write an implementation of \code{count3s} that is tail-recursive
+	if your answer to Question~\ref{q:tail.c3s} was ``Is not tail-recursive'', and that is
+	not-tail-recursive if your answer to Question~\ref{q:tail.c3s} was ``Is tail-recursive''.
+      \item (\textbf{3 points})
+	Is the function \code{reduce/4} in Figure~\ref{fig:hw2-fun} tail-recursive?
+	Give a one-sentence justification for your answer.
+      \item (\textbf{2 points})
+	Is the function \code{stat/3} in Figure~\ref{fig:hw2-fun} tail-recursive?
+	Give a one-sentence justification for your answer.
+      \item (\textbf{3 points})
+	Name two advantages of using tail-recursive functions.
+	At least one of these should be specific to implementing message-passing programs.
+      \item (\textbf{3 points})
+	Give a one or two sentence explanation of where it can be a better choice to implement
+	a recursive function without using tail-recursion.
+    \end{enumerate}
+
+  \begin{figure}\begin{center}
+    \begin{xcode}
+      reduce(\tuple{\_}, [], \_, GrandTotal) -> GrandTotal;\\
+      reduce(ParentPid, [], \_, MyTotal) ->\\
+      ParentPid ! \tuple{self(), reduce\_up, MyTotal},\\
+      receive\\
+      \>\tuple{ParentPid, reduce\_down, GrandTotal} -> GrandTotal\\
+      end;\\
+      reduce(Parent, [ChildHd | ChildTl], CombineFun, LeftTotal) ->\\
+      \>receive\\
+      \>\>\tuple{ChildHd, reduce\_up, RightTotal} ->\\
+      \>\>\>GrandTotal =\\
+      \>\>\>\>reduce(Parent, ChildTl, CombineFun, CombineFun(LeftTotal, RightTotal)),\\
+      \>\>\>ChildHd ! \tuple{self(), reduce\_down, GrandTotal},\\
+      \>\>\>GrandTotal\\
+      \>end.\\
+      \rule{0em}{3ex}%
+      stats(\_C0, 0, Acc) -> Acc;\\
+      stats(C0, N, Acc) ->\\
+      \>stats(C0, N-1, stat:accum(island:sim(C0), Acc)).\\
+    \end{xcode}
+    \caption{Functions \code{reduce/4} and \code{stats/3}.}\label{fig:hw2-fun}
+  \end{center}\end{figure}
+
+	
+  \item \textbf{Associative Functions} (\textbf{25 points})\label{q:assoc}\\
+    For each function below, state if it is associative or not.
+    If it is associative, give a short proof; if not, give a counter-example.
+    Ignore round-off errors (i.e.\ all functions are mathematically exact).
+
+    If it appears to be associative, but you are stuck with a proof, you
+    can give five test cases to get half credit if it is associative.
+    Your test cases should provide values \code{X}, \code{Y}, and \code{Z}
+    such that\\
+    \rule{1.5em}{0ex}\code{f(f(X, Y), Z) == f(X, f(Y, Z))}.\\
+    In fact, if you're stuck with a proof, try a few cases.  If you find a counter
+    example you're done.  If you don't then you are likely to see \emph{why} the
+    function is associative by looking at the examples you tried.\\
+    If you give three test-cases that pass, but the function is not actually
+    associative, you will get 1 point for the examples.
+
+    \begin{enumerate}
+      \item \code{a(X, Y) -> X*Y.}  (\textbf{5 points})
+      \item \code{b(X, Y) -> 2*X*Y.}  (\textbf{5 points})
+      \item \code{c(X, Y) -> 2*(X+Y).}  (\textbf{5 points})
+      \item \code{d(\tuple{X1,X2}, \tuple{Y1,Y2}) -> \tuple{X1+(X2*Y1), X2*Y2}}.  (\textbf{5 points})
+      \item From the four functions listed above, identify one that is associative and commutative. (\textbf{2 points})
+      \item From the four functions listed above, identify one that is associative and not commutative.
+	Given an example for \code{X} and \code{Y} that shows \code{f(X, Y) /= f(Y, X)}, where
+	\code{f} is one of the four functions listed above.
+    \end{enumerate}
+
+  \item \textbf{Reduce} (\textbf{25 points})
+    Let \code{F(X,Y)} be your choice of \code{b(X,Y)}, \code{c(X,Y)} or \code{d(X,Y)} from
+    Question \code{q:assoc}, your choice must be a function that you identified as being associative.
+    If you chose \code{b} or \code{c}, then let \code{AccIn=0.5} or \code{AccIn=0}, respectively, and \code{List} be a list of numbers.
+    If you chose \code{d}, then let \code{AccIn=\tuple{0,1}} and \code{List} be a list of tuples
+    of the form \code{\tuple{X, Y}} where \code{X} and \code{Y} are numbers.
+    Consider folding a list with your function:
+    \begin{xcode}
+      Ans = lists:foldl(fun(Element,Acc) -> F(Acc, Element) end, AccIn, List)
+    \end{xcode}
+    Write a parallel implementation of this computation:
+    \begin{xcode}
+      Ans = wt\=ree:reduce(W, LeafFun(ProcState), CombineFun(Left, Right))
+    \end{xcode}
+    where \code{W} is a worker tree from \code{wtree:create/1}, and you need to
+    write the functions for \code{LeafFun} and \code{CombineFun}.
+
+  \item \textbf{Message Passing Networks}
+    \begin{enumerate}
+      \item Bisection Width of a Fat Tree (\textbf{15 points})\\
+	Fat-trees
+	(see slide 20 of the \hrefc{https://www.students.cs.ubc.ca/~cs-418/2025-1/lecture/09-26/slides.pdf}{Sept.\ 26 lecture slides}) are a generalization of tree interconnect that avoid the
+	bandwidth bottleneck at the root by using an increasing number of links between
+	tree notes when going up in the tree.  In particular, if a node is the root of
+	a subtree with $M$ nodes, then there will be $\lceil M^\alpha \rceil$ links from
+	the node to its parent, with $0 \leq \alpha \leq 1$ being a design paramter.
+	Fat trees have been used in real super-computers.
+	For example, the
+	\hrefc{https://en.wikipedia.org/wiki/Tianhe-2}{Tianhe-2 supercomputer} held
+	the fastest supercomputer position on the
+	\hrefc{https://www.top500.org}{Top-500 supercomputer list} for three years
+	from June 2013 to June 2016 when it was superceded by the Sunway TaihuLight
+	computer.  The Tianhe-2 used a fat-tree for its interconnect, see
+	\hrefc{https://dx.doi.org/10.1007/s11390-015-1520-7}{High Performance Interconnect for Tianhe System} -- here is the UBC ez-proxy \hrefc{https://link-springer-com.ezproxy.library.ubc.ca/content/pdf/10.1007/s11390-015-1520-7.pdf}{link}.
+	\par
+	\begin{enumerate}
+	  \item (\textbf{5 points})
+	    What is the bisection width of a Fat Tree with $2^k$ leaves?
+	    Give a formula in terms $k$ and $\alpha$.\\
+	    You can assume that the router-nodes are huge crossbars
+	    (see the paper citedwabove if you want the details of how it can be done
+	    in practice, but we won't complicate this question with more detail).
+	    You don't need to ``look-inside'' the router-nodes to answer this question.
+	  \item (\textbf{10 points})
+	    Give a short justification of your answer.  For example:
+	    \begin{itemize}
+	      \item Point out that if the minimum bisection involves cutting one
+		link between two nodes, it must involve cutting all links between
+		those nodes.  If you use this in your justification, give a one
+		sentence justification.
+	      \item State which links are cut to get the minimum bisection.
+	      \item Give a short explantion of why this is the minimum cut.
+		Short means no more than three sentences.
+	    \end{itemize}
+	\end{enumerate}
+
+      \item  Dimension routing on a torus. (\textbf{10 points})\\
+	Consider a $16 \times 24$ torus.
+	Describe for each source-destination pair listed below, give the
+	shortest route, using dimension routing.
+	\begin{enumerate}
+	  \item \textbf{Example:} source = (3,12), destination = (7,6).\\
+	    Shortest route goes from (3,12) to (7,6) by heading in the
+	    direction of increasing $x$, i.e.\\
+	    \rule{1.5em}{0ex}%
+	    $(3,12)\rightarrow(4,12)\rightarrow(5,12)\rightarrow(6,12)\rightarrow(7,12)$\\
+	    using 4 hops.  Then it goes form (7,12) to (7,6) by heading in the direction
+	    of decreasing $y$ using 6 hops.  The total complete route required 10 hops
+	    in the network.\\
+	    Now that I gave one example of the details of ``in the direction of increasing $x$'',
+	    you don't need to list all the intermediate nodes in your solutions.
+	  \item source = (3,12), destination = (10,22).
+	  \item source = (3,12), destination = (14,12).
+	\end{enumerate}
+	Note: this problem gives more points per byte of answer than the others.
+	Don't worry about that, just be happy to get an easy question.
+    \end{enumerate}
+
+
+  \item \textbf{Communication Overhead} (\textbf{25 points})\\
+    Consider the problem of computing the sum of the elements of a list, \code{List},
+    of \code{N} elements that is distributed across \code{NW} workers.
+    Each worker has a segment with \code{N/NW} elements of \code{List}.
+    For simplicity, we will assume that  \code{N} is a multiple of \code{NW}, and
+    that \code{NW} is a power of two.
+    \par
+    Of course, we will use reduce to compute the sum.
+    The worker tasks will use \code{lists:sum} to compute their sums.
+    Assume that \code{lists:sum(L)} takes time $3\mathrm{ns}*\code{length(L)}$
+    where ns is short for ``nanosecond'', and one nanosecond is $10^{-9}$ seconds.
+    Assume that sending one integer between processes takes $2\mu\mathrm{s}$
+    where $\mu\mathrm{s}$ is short for ``microsecond'',  and one microsecond is $10^{-6}$ seconds.
+    This is the total time for from when when the sending process starts the send until the
+    receiving process completes the receive.
+    \begin{enumerate}
+      \item (\textbf{4 points}) What is the time to compute the sum using reduce?\\
+	Note that reduce makes two passes through the tree, one bottom-up and the other top-down
+	whether we use \code{wtree:reduce} or the book's method.  So, your answer should
+	be the same for either method.  We are ignoring compute-time for non-leaf nodes of
+	the tree because it is negigible compared with the communication time.
+      \item (\textbf{4 points}) What is the time to compute the sum sequentially,
+	i.e.\ using a single process?
+      \item (\textbf{4 points}) What is the speed-up?
+      \item (\textbf{3 points}) What is the speed-up if \code{N=100,000} and \code{NW=16}?
+      \item (\textbf{6 points})
+	Now consider an implementation in C.
+	Assume that C is $10\times$ faster for computing the sum of the elements of an array.
+	In other words, the time to compute the sum of an array with \code{N} elements
+	is $0.3\mathrm{ns} * \code{N}$.
+	Assume that communication costs are the same as the Erlang case (similar costs
+	for any OS overhead, thread synchronization, etc.).
+	\par
+	For the questions below, we have given you space to show two or three
+	lines of work for each answer.
+	\begin{enumerate}
+	  \item What is the parallel  time for the C implementation
+	    with \code{N=100,000} and \code{NW=16}?
+	  \item What is the sequential time for the C implementation
+	    with \code{N=100,000}?
+	  \item What is the speed-up for the C implementation
+	    with \code{N=100,000} and \code{NW=16}?
+	  \item Which is fastest, the Erlang sequential, Erlang parallel, C sequential,
+	    of C parallel?\\
+	  \item Which gets the greater speed up,
+	    Erlang parallel vs.\ Erlang sequential,
+	    or C parallel vs.\ C sequential?
+	  \item Give a one or two sentence explanation for the relationship you observe
+	    about which is fastest and which gets the greater speed-up.
+	\end{enumerate}
+    \end{enumerate}
+\end{enumerate}
+
+\vfill
+\parbox{0.16\textwidth}{\includegraphics[width=0.16\textwidth]{cc-by}}\hfill\parbox{0.80\textwidth}{
+  \footnotesize
+  Unless otherwise noted or cited, 
+  the questions and other material in this homework problem set
+  is copyright 2025 by Susanne Bradley and Mark Greenstreet
+  and are made available under the terms of the Creative Commons
+  Attribution 4.0 International license
+  \url{http://creativecommons.org/licenses/by/4.0/}
+}
+\end{document}
