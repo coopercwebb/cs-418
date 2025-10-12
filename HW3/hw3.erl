@@ -16,7 +16,11 @@ count3s([_ | Tl]) -> count3s(Tl).
 
 % your version for Q1.b
 count3s_q1b(List) ->
-  you_might_need_to_write_this(count3s_q1b, [List]).
+  count3s_q1b_helper(List, 0).
+
+count3s_q1b_helper([], Acc) -> Acc;
+count3s_q1b_helper([3 | Tl], Acc) -> count3s_q1b_helper(Tl, Acc+1);
+count3s_q1b_helper([_ | Tl], Acc) -> count3s_q1b_helper(Tl, Acc).
 
 
 % Q3

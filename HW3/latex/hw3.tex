@@ -51,22 +51,47 @@ Do any three of the questions below.
 	  count3s([\_ | Tl]) -> count3s(Tl);
 	\end{xcode}
 	Is \code{count3s} tail-recursive?\\
-	Why or why not?
+	Why or why not? \\
+    \begin{answer}
+      No, by definition a tail-recursive function is one where the the recursive call 
+      is the last statement that is executed by the function\textsuperscript{{\hyperlink{ref1}{1}}}.
+      Here each intermediate stack frame must wait to add 1 to the recursive call. Therefore, the recursive 
+      call is not the last statement executed by the function.
+    \end{answer}
       \item (\textbf{5 points}) Write an implementation of \code{count3s} that is tail-recursive
 	if your answer to Question~\ref{q:tail.c3s} was ``Is not tail-recursive'', and that is
-	not-tail-recursive if your answer to Question~\ref{q:tail.c3s} was ``Is tail-recursive''.
+	not-tail-recursive if your answer to Question~\ref{q:tail.c3s} was ``Is tail-recursive''. \\
+    \begin{answer}
+      Tail recursive function implemented in hw3.erl:18-23.
+    \end{answer}
       \item (\textbf{3 points})
 	Is the function \code{reduce/4} in Figure~\ref{fig:hw2-fun} tail-recursive?
-	Give a one-sentence justification for your answer.
+	Give a one-sentence justification for your answer. \\
+    \begin{answer}
+      No, function calls must wait for the return of recursive calls to perform additional work (ie. message passing).
+    \end{answer}
       \item (\textbf{2 points})
 	Is the function \code{stat/3} in Figure~\ref{fig:hw2-fun} tail-recursive?
-	Give a one-sentence justification for your answer.
+	Give a one-sentence justification for your answer. \\
+    \begin{answer}
+      Yes, as the final statement executed by the function is a recursive call.
+    \end{answer}
       \item (\textbf{3 points})
 	Name two advantages of using tail-recursive functions.
-	At least one of these should be specific to implementing message-passing programs.
+	At least one of these should be specific to implementing message-passing programs. \\
+      \begin{answer}
+      Advantage 1 - Memory Efficiency: As tail-recursive functions last executed statement is a recursive call,
+      stack frames can be re-used for the recursive call (tail call elimination). Improving performance by reducing space complexity.
+      \\
+      Advantage 2 - Message-Passing Servers: Tail-recursive functions allow message-passing servers to run indefinitely without consuming stack space, as each recursive call to handle the next message reuses the same stack frame.
+      \end{answer}
       \item (\textbf{3 points})
 	Give a one or two sentence explanation of where it can be a better choice to implement
-	a recursive function without using tail-recursion.
+	a recursive function without using tail-recursion. \\
+      \begin{answer}
+        When intermediate results from each recursive call need to be combined or processed on the return path, non-tail-recursion is preferred because it maintains the call stack to preserve these intermediate values. Examples include tree traversals that aggregate data or mathematical functions that combine results from subproblems.
+      \end{answer}
+
     \end{enumerate}
 
   \begin{figure}\begin{center}
@@ -163,7 +188,12 @@ Do any three of the questions below.
 	    You can assume that the router-nodes are huge crossbars
 	    (see the paper citedwabove if you want the details of how it can be done
 	    in practice, but we won't complicate this question with more detail).
-	    You don't need to ``look-inside'' the router-nodes to answer this question.
+	    You don't need to ``look-inside'' the router-nodes to answer this question. \\
+      \begin{answer}
+        $\lceil (2^k - 1)^{\alpha} \rceil$ \\
+        (Cutting one root branch based on the formula above, 2L - 1 nodes in a tree (half of the leaves are present))
+      \end{answer}
+      
 	  \item (\textbf{10 points})
 	    Give a short justification of your answer.  For example:
 	    \begin{itemize}
@@ -173,7 +203,13 @@ Do any three of the questions below.
 		sentence justification.
 	      \item State which links are cut to get the minimum bisection.
 	      \item Give a short explantion of why this is the minimum cut.
-		Short means no more than three sentences.
+		Short means no more than three sentences. \\
+        \begin{answer}
+          Based on the bisection width of a standard tree ``For tree topology with n nodes can be bisected at the root by breaking one link, so bisection bandwidth is one link bandwidth''\textsuperscript{{\hyperlink{ref2}{2}}}, the same logic applies to the fat tree.
+          However, in a fat tree with $2^k$ leaves, this "one link" between the root and a child subtree (containing $2^k - 1$ total nodes) actually consists of $\lceil (2^k - 1)^{\alpha} \rceil$ parallel links.
+          All of these parallel links must be cut to achieve bisection, because otherwise the two halves would still be connected.
+          Therefore, the bisection width is $\lceil (2^k - 1)^{\alpha} \rceil$.
+        \end{answer}
 	    \end{itemize}
 	\end{enumerate}
 
@@ -192,8 +228,17 @@ Do any three of the questions below.
 	    in the network.\\
 	    Now that I gave one example of the details of ``in the direction of increasing $x$'',
 	    you don't need to list all the intermediate nodes in your solutions.
-	  \item source = (3,12), destination = (10,22).
-	  \item source = (3,12), destination = (14,12).
+	  \item source = (3,12), destination = (10,22). \\
+    \begin{answer}
+      10 - 3 = 7 hops in increasing x. \\
+      22 - 12 = 10 hops in increasing y. \\
+      7 + 10 = 17 hops total. 
+    \end{answer}
+	  \item source = (3,12), destination = (14,12). \\
+	  \begin{answer}
+      16 - (14 - 3) = 5 hops in decreasing x. \\
+      12 - 12 = 0 hops in y.
+    \end{answer}
 	\end{enumerate}
 	Note: this problem gives more points per byte of answer than the others.
 	Don't worry about that, just be happy to get an easy question.
@@ -220,11 +265,25 @@ Do any three of the questions below.
 	Note that reduce makes two passes through the tree, one bottom-up and the other top-down
 	whether we use \code{wtree:reduce} or the book's method.  So, your answer should
 	be the same for either method.  We are ignoring compute-time for non-leaf nodes of
-	the tree because it is negigible compared with the communication time.
+	the tree because it is negigible compared with the communication time. \\
+  \begin{answer}
+    Leafs are computed in parallel. Communication is done in parallel so it is equal to the height of the tree times 2 (reduce up and reduce down). \\
+    $3ns\cdot(N/NW) + 2(2\mu s \cdot 1000ns/\mu s \cdot log_2NW)$ \\
+    = $3ns\cdot(N/NW) + 4000ns \cdot log_2NW$ 
+  \end{answer}
       \item (\textbf{4 points}) What is the time to compute the sum sequentially,
-	i.e.\ using a single process?
-      \item (\textbf{4 points}) What is the speed-up?
-      \item (\textbf{3 points}) What is the speed-up if \code{N=100,000} and \code{NW=16}?
+	i.e.\ using a single process? \\
+      \begin{answer}
+        $3ns \cdot N$
+      \end{answer}
+      \item (\textbf{4 points}) What is the speed-up? \\
+      \begin{answer}
+        $\frac{3 \cdot N}{3\cdot(N/NW) + 4000 \cdot log_2NW}$
+      \end{answer}
+      \item (\textbf{3 points}) What is the speed-up if \code{N=100,000} and \code{NW=16}? \\
+      \begin{answer}
+        $\frac{1200}{139} \approx 8.633$
+      \end{answer}
       \item (\textbf{6 points})
 	Now consider an implementation in C.
 	Assume that C is $10\times$ faster for computing the sum of the elements of an array.
@@ -237,21 +296,46 @@ Do any three of the questions below.
 	lines of work for each answer.
 	\begin{enumerate}
 	  \item What is the parallel  time for the C implementation
-	    with \code{N=100,000} and \code{NW=16}?
+	    with \code{N=100,000} and \code{NW=16}? \\
+    \begin{answer}
+    Leafs are computed in parallel. Communication is done in parallel so it is equal to the height of the tree times 2 (reduce up and reduce down). \\
+      $0.3ns \cdot(N/NW) + 2(2\mu s \cdot log_2NW)$ \\
+      =  $0.3ns \cdot \frac{1 \mu s}{1000 ns} \cdot(N/NW) + 4\mu s \cdot log_2NW$ \\
+      = $17.875 \mu s$
+    \end{answer}
 	  \item What is the sequential time for the C implementation
-	    with \code{N=100,000}?
+	    with \code{N=100,000}? \\
+    \begin{answer}
+      $100000 \cdot 0.3ns \cdot \frac{1\mu s}{1000ns}=30 \mu s$
+    \end{answer}
 	  \item What is the speed-up for the C implementation
-	    with \code{N=100,000} and \code{NW=16}?
+	    with \code{N=100,000} and \code{NW=16}? \\
+    \begin{answer}
+      $\frac{0.3 \cdot N}{0.3\cdot(N/NW) + 4000 \cdot log_2NW} = 1.67832$
+    \end{answer}
 	  \item Which is fastest, the Erlang sequential, Erlang parallel, C sequential,
 	    of C parallel?\\
+    \begin{answer}
+      C parallel.
+    \end{answer}
 	  \item Which gets the greater speed up,
 	    Erlang parallel vs.\ Erlang sequential,
-	    or C parallel vs.\ C sequential?
+	    or C parallel vs.\ C sequential? \\
+    \begin{answer}
+      Erlang parallel vs. Erlang sequential.
+    \end{answer}
 	  \item Give a one or two sentence explanation for the relationship you observe
-	    about which is fastest and which gets the greater speed-up.
+	    about which is fastest and which gets the greater speed-up. \\
+    \begin{answer}
+      The C parallel version is fastest because even though its speed-up is less than the Erlang implementation, the communication overhead is equal and the parallel summing portions execute faster. The Erlang parallel vs. Erlang sequential experiences greater speed-up because we are dealing with a relatively small problem size (N=100,000) where the serializable portion (communication overhead) represents a significant cost, but as you approach infinitely large problem sizes, this serializable portion becomes infinitesimally small compared to the parallel portion, and both speed-ups would approach NW (16 in this case).
+    \end{answer}
 	\end{enumerate}
     \end{enumerate}
 \end{enumerate}
+
+\section*{References}
+\hypertarget{ref1}{1.} ``Tail Recursion - Data Structures and Algorithms,'' GeeksforGeeks. Available: \url{https://www.geeksforgeeks.org/dsa/tail-recursion/}\\
+\hypertarget{ref2}{2.} ``Bisection bandwidth,'' Wikipedia. Available: \url{https://en.wikipedia.org/wiki/Bisection_bandwidth}
 
 \vfill
 \parbox{0.16\textwidth}{\includegraphics[width=0.16\textwidth]{cc-by}}\hfill\parbox{0.80\textwidth}{
