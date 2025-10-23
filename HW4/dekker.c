@@ -18,16 +18,16 @@ Lock *dk_create() {
   data->flag[0] = data->flag[1] = false;
   data->turn = 0;
   lock->data = (void *)data;
-  return(lock);
+  return (lock);
 }
 
 static void dk_destroy(Lock *lock) {
   dk_data *data = (dk_data *)(lock->data);
-  assert(!(data->flag[0] || data->flag[1])); // neither thread holds the lock nor
-					     // is trying to acquire it.
-  free((void *)data);  
+  assert(!(data->flag[0] || data->flag[1])); // neither thread holds the lock
+                                             // nor is trying to acquire it.
+  free((void *)data);
   lock->data = NULL;  // cause any attempts to use a freed lock to crash
-  free((void *)lock);  // actually free lock
+  free((void *)lock); // actually free lock
 }
 
 static void dk_acquire(Lock *lock, int thread_id) {
@@ -35,13 +35,14 @@ static void dk_acquire(Lock *lock, int thread_id) {
   volatile dk_data *data = (dk_data *)(lock->data);
   assert((thread_id == 0) || (thread_id == 1));
   assert(!data->flag[thread_id]);
-  data->flag[thread_id] = true; /* indicate intention to enter critical region */
-  while(data->flag[!thread_id]) {
-    if(data->turn != thread_id) {
-      data->flag[thread_id] = false;       /* give the other thread a chance */
-      while(data->turn != thread_id)  /* spin waiting for turn */
-	;
-      data->flag[thread_id] = true;       /* try again */
+  data->flag[thread_id] =
+      true; /* indicate intention to enter critical region */
+  while (data->flag[!thread_id]) {
+    if (data->turn != thread_id) {
+      data->flag[thread_id] = false;  /* give the other thread a chance */
+      while (data->turn != thread_id) /* spin waiting for turn */
+        ;
+      data->flag[thread_id] = true; /* try again */
     }
   }
 }

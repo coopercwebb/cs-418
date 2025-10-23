@@ -1,10 +1,10 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include "lock.h"
 #include <assert.h>
 #include <ctype.h>
-#include <sys/time.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/resource.h>
-#include "lock.h"
+#include <sys/time.h>
 
 extern Lock *cx_create(); // from cx.c
 extern Lock *dk_create(); // from lock.c
@@ -18,9 +18,10 @@ double stdev(double *data, int n);
 
 // from array.c
 // functions that create arrays
-int *ar_random(int n); // random elements
+int *ar_random(int n);       // random elements
 int *ar_const(int c, int n); // all elemenrts initialized to c
-//
-void ar_free(int * a); // free an array
-void ar_merge(int *a0, int *a1, int *b, int n); // see array.c or hw3 Question 2.
+
+void ar_free(int *a); // free an array
+void ar_merge(int *a0, int *a1, int *b,
+              int n);     // see array.c or hw3 Question 2.
 int ar_op(int *a, int n); // see array.c or hw3 Question 2.

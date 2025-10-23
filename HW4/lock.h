@@ -3,9 +3,9 @@
 //   I'm a lousy C++ programmer; so, I'll kludge it in C.
 //   C++ implementations are welcome.
 
-#include <stdlib.h>
-#include <stdbool.h>
 #include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 #ifndef LOCK_H
 #define LOCK_H
