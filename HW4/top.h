@@ -1,9 +1,26 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
-<html><head>
-<title>404 Not Found</title>
-</head><body>
-<h1>Not Found</h1>
-<p>The requested URL was not found on this server.</p>
-<hr>
-<address>Apache/2.4.58 (Ubuntu) Server at www.students.cs.ubc.ca Port 443</address>
-</body></html>
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <ctype.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include "lock.h"
+
+extern Lock *cx_create(); // from cx.c
+extern Lock *dk_create(); // from lock.c
+
+// from util.c
+extern double twiddle(int);
+void usage(int i, const char **opt_names, int pos);
+int get_int(int argc, char **argv, const char **opt_names, int i, int v0);
+double mean(double *data, int n);
+double stdev(double *data, int n);
+
+// from array.c
+// functions that create arrays
+int *ar_random(int n); // random elements
+int *ar_const(int c, int n); // all elemenrts initialized to c
+//
+void ar_free(int * a); // free an array
+void ar_merge(int *a0, int *a1, int *b, int n); // see array.c or hw3 Question 2.
+int ar_op(int *a, int n); // see array.c or hw3 Question 2.

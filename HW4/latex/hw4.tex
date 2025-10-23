@@ -1,0 +1,924 @@
+\documentclass{article}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{upquote}
+\usepackage{amssymb}
+\usepackage{wasysym}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{epsfig}
+\setlength{\oddsidemargin}{0in}\setlength{\textwidth}{6.5in}
+\setlength{\topmargin}{0.0in}\setlength{\textheight}{8.5in}
+\input{cs418-macros}
+\newcommand{\srcdir}{www.students.cs.ubc.ca/~cs-418/2025-1/hw/4/src}
+\newcommand{\erltemplate}{\hrefc{https://\srcdir/hw4.erl}{hw4.erl}}
+\newcommand{\erllibx}{\hrefc{https://\srcdir/hw4_lib.erl}{hw4\_lib.erl}}  % with the .erl extension
+\newcommand{\erllib}{\hrefc{https://\srcdir/hw4_lib.erl}{hw4\_lib}}       % without the .erl extension
+\newlength{\xlen}
+\newlength{\ylen}
+\newcounter{enumiisave}
+\begin{document}
+\noindent%
+CpSc 418 \hfill \begin{tabular}[t]{c}{\Large\bf Homework 4}\smallskip\\
+                                     Architecture
+		\end{tabular}
+	 \hfill \begin{tabular}[t]{l}Due: October 28, 2025, 11:59pm\\
+	                             Early-Bird: Octover 26, 2025, 11:59pm
+		\end{tabular}\bigskip\\
+\par\noindent%
+\section*{Prelude}
+Please submit your solution using:\\
+  \rule{2em}{0ex}\texttt{handin cs-418 hw4}
+Your solution should contain at least:
+\begin{description}
+  \item{\texttt{hw4.pdf}}: PDF for your written answers.
+  \item{\texttt{dekker.c}}: Your modified \hrefc{https://www.students.cs.ubc.ca/~cs-418/2025-1/hw/4/src/dekker.c}{\texttt{dekker.c}}.
+  \item{\texttt{hw4.erl}}: a template is provided at \erltemplate().
+\end{description}
+More useful files for this assignment are avalable at
+\hrefc{https://www.students.cs.ubc.ca/~cs-418/2025-1/hw/4/hw4.html}{\texttt{hw4.html}}.
+
+Please submit code that compiles without errors or warnings.
+If your code does not compile, we might give you zero points on all of the
+programming problems.
+If we fix your code to make it compile, we will take off lots of points for that service.
+If your code generates compiler warnings, we will take off points for that as well, but
+not as many as for code that doesn't compile successfully.
+Any question about whether or not your code compiled as submitted will be determined by trying
+it on CS department linux machines.
+
+\section{The Questions (140 points + 1 Extra Credit)}
+\begin{enumerate}\setcounter{enumi}{-1}
+  \item \textbf{Collaborators} (\textbf{2 points (+1 extra credit)}).\label{q:collab}\\
+    In your \texttt{hw4.pdf} list anyone you collaborated with or outside materials that you used.
+    \begin{itemize}
+      \item If the collaborator is a student in this class, give their CWL.
+      \item If the colloborator is a human who is not in this class, give their name
+	and a short (i.e.\ one sentence) description of their relevance to this course.
+      \item If you used on-line material, give the URL.
+      \item If you used an AI assistant, give the name of the assistant.
+	We'll give extra credit if you include your prompt, and one sentence to say
+	what was useful in the response.
+      \item Other sources such as books should be just cited clearly.
+    \end{itemize}
+    For each collaborator, list what questions you collaborated on.
+    \par
+    You do not need to list course materials including anything on the 
+    \hrefc{https://www.students.cs.ubc.ca/~cs-418}{cs-418 website},
+    assigned readings, the official \hrefc{https://www.erlang.org}{Erlang} documentation,
+    or material from office hours or tutorials.
+    \par
+    If you had no collaborators, write ``\textit{No collaborators}''.
+    A blank or omitted response will get no credit.
+    \par
+    \textbf{Extra Credit:} When grading HW 1, one of our TA's pointed out that many of
+    you did an extra fantastic job on this question providing detailed prompts that
+    you used with AI assistants.  We really appreciate this as we are learning how
+    we can best leverage emerging technologies in our teaching.  In fact, we appreciated
+    it so much that we gave a point of extra credit for answers that the TA flagged
+    as extra good!  Thanks.
+
+    Going forward, we want to make this opportunity to everyone, whether or not you use AI.
+    Here are \emph{five} ways you can get that extra credit point:
+    \begin{enumerate}
+      \item Include your prompts to AI assistants as described above.
+      \item Tell us why you didn't use an AI assistant or didn't find it helpful.
+      \item Write a few sentences that you think would be the best advice you could
+	give to a student starting this assignment based on your experience of
+	completing it.
+      \item Identify a question that you thought was particularly helpful or
+	pointlessly tedious, and give us a few sentences saying why.
+      \item Write something else that you think is worthy of extra-credit.
+	Mark it clearly as your response to the \textbf{Extra Credit} part
+	of this question.
+    \end{enumerate}
+
+  \item \textbf{Locks and Memory Coherence.} (30 points)\label{q:lock}\\
+    The source code for this assignment includes:
+    \begin{itemize}
+      \item \hrefc{\srcdir/cx.c}{\texttt{cx.c}}: an implementation of a compare-and-exchange lock.
+      \item \hrefc{\srcdir/dekker.c}{\texttt{dekker.c}}: an implementation of Dekker's mutual exclusion algorithm.
+      \item \hrefc{\srcdir/lock.c}{\texttt{lock.c}}: a test fixture for locks.\\
+      \item \hrefc{\srcdir/util.c}{\texttt{util.c}}: a few functions used in Questions 1 and 2.
+      \item \hrefc{\srcdir/lock.h}{\texttt{lock.h}}: a header file shared by
+	\texttt{cx.c}, \texttt{dekker.c}, \code{lock.c}, and \code{util.c}.
+      \item \hrefc{\srcdir/array.c}{\texttt{array.c}}: functions for creating and simple computations on arrays of \code{int}s.
+      \item \hrefc{\srcdir/op.c}{\texttt{op.c}}: test fixture for measuring execution times for the
+	\code{ar\_op} function from \texttt{array.c}.
+      \item \hrefc{\srcdir/top.h}{\texttt{top.h}}: a header file shared by
+	\texttt{array.c}, \code{op.c} and \code{util.c}.
+
+      \item \hrefc{\srcdir/Makefile}{\texttt{Makefile}}: a Makefile
+    \end{itemize}
+    The implementation of Dekker's mutual exclusion algorithm is based on the version presented in class.
+    I've divided it up into separate functions for creating, destroying, acquiring, and releasing locks.
+    As noted in lecture, Dekker's algorithm fails on a modern CPU where the cache coherency protocol does
+    not guarantee sequential consistency.  If you build the \texttt{lock} target and try the command:\\
+    \rule{1.5em}{0ex}\texttt{lock dekker 10000}\\
+    it will print out the number of errors that it encounters.
+    The parameters to the \texttt{lock} program are:
+    \rule{1.5em}{0ex}\texttt{lock which-lock ntrials}\\
+    where
+    \begin{description}
+      \item{\texttt{which-lock}} is \code{dekker} for Dekker's algorithm, and \texttt{cx} for the
+	compare-and-exchange lock described below.
+      \item{\texttt{ntrials}} is the number of trials to run.  Each thread acquires (and later releases)
+	the lock \code{ntrials} times.  During each trial, it counts to 10, setting the global variable
+	\code{count[thread\_id]} to the loop index with each iteration of the loop, and checking that
+	\code{count[!thread\_id]} is zero, i.e.\ that the other thread is not in it's critical region as well.
+    \end{description}
+    \noindent%
+    {\large\textbf{The first two questions:}}
+    \begin{enumerate}
+      \item \textbf{(5 points)}: Identify the cause of the errors.  In other words, explain how
+	weak-consistency makes it possible for Dekker's algorithm to fail.  Be specific.  You
+	should be able to give a specific sequence of operations in the two threads that leads to
+	an error.  This explanation should include the specific load, store, and branch operations
+	that led to the error.
+	Describe the specific memory operations and what happens in the cache and memory.
+	You may assume that the cache uses a write-buffer.
+	\par
+	Explain (briefly, not a lot of technical detail required) how weak-memory consistency
+	led to the error.  In particular, what operation(s) in the explanation that you provided
+	for the failure was (were) allowed by weak consistency but would not be allowed with
+	sequential consistency.
+	This question is basically asking you to summarize what was presented in class.
+      \item \textbf{(10 points)}: Here's a ``fix'' that is very much \emph{not} recommended in real life.  
+	The error happens because some memory operations can occur in a different order than expected
+	according to sequential consistency.  We can ``help'' the memory system get the ordering ``right''
+	by forcing some delays in program execution at critical points.
+	The function \code{twiddle(int n)} in \hrefc{\srcdir{util.c}}{\texttt{util.c}} calls the
+	\code{sin} function \code{n} times, thus wasting a bit of CPU time.  Yay!
+	\par
+	Add a call to \code{twiddle(n)} to the code for Dekker's algorithm to reduce the error rate.
+	Explain why you inserted the call where you did.
+	Report the error rate you observe for a few (e.g.\ five) values of \code{n}.  How big does
+	\code{n} need to be to observe no errors when \code{ntrials==1000000}?  Exact values aren't
+	needed.  For example, if you double \code{n} until you get a value for which you see no
+	errors when \code{ntrials==1000000}, that's good enough.
+    \end{enumerate}
+
+    Calling \code{twiddle} is not a very satisfactory solution.  We never know that we've
+    waited long enough, and in most cases, we'll wait longer than needed.  We could use a
+    memory fence instead of calling \code{twiddle}, but we know that fences slow all of the
+    processors down.  Instead, we'll examine a solution using atomic compare-and-exchange,
+    \code{cmpxchg}, instructions.  For example,\\
+    \rule{1.5em}{0ex}\code{cmpxchg [\%dst] \%exp \%val}\\
+    reads the value at memory location whose address is given by register \code{\%dst}.
+    If this value matches the value in register \code{\%exp} (the expected value),
+    then the value of register \code{\%val} is written to memory location \code{[\%dst]}.
+    If the values don't match, then the memory value is unchanged, but register \code{\%exp}
+    is updated to the value in memory.
+
+    The compare-and-exchange operation is performed as an \textit{atomic} operation:
+    no other reads or writes of memory location \code{[\$dst]} can take place between
+    the read and write.  I'm most familiar with how this was done on a SPARC where the
+    caches had a ``read-with-intention-to-write'' operation.  The value at the specified
+    address is read, and the cache moves to state \code{M} (or stays in \code{M} if already there).
+    Any other caches holding the line for that address move to state \code{I}.
+    The cache for the processor performing the compare-and-exchange operation will hold
+    on to the line (even if there are pending reads or writes from other processors),
+    until the local processor signals that the instruction has completed.
+    This makes it essential that the read, compare, and write are done as a single
+    instruction -- the CPU cannot be interrupted in the middle of this sequence.
+
+    It is simple to implement a lock using compare-and-exchange.
+    We assign a unique, non-zero, \code{int} valued id to each thread.
+    The lock is implemented with a shared, \code{int} valued memory location,
+    \code{lock->data}.
+    \begin{itemize}
+      \item When \code{lock->data == 0}, the lock is free.
+      \item When \code{lock->data != 0}, \code{lock->data} is the thread-id of
+	the thread holding the lock.
+      \item To acquire the lock, a thread spins, reading \code{lock->data}
+	until it reads a value of \code{0}.
+	\begin{itemize}
+	  \item The thread then does a compare-and-exchange operation
+	    to set \code{lock->data} to its thread-id if \code{lock->data}
+	    is still 0.
+	  \item If the compare-and-exchange fails, then the thread goes
+	    back to spinning until \code{lock->data==0}.
+	\end{itemize}
+      \item To release the lock, the thread that owns the lock sets
+	\code{lock->data} to \code{0}.
+    \end{itemize}
+    Unlike Dekker's algorithm that can only provide mutual-exclusion between two
+    threads, the compare-and-exchange lock can provide mutual-exchange between
+    an arbitrary number of threads.
+    A compare-and-exchange operation can operate on a single ``word'' which can
+    be 4 or even 8 bytes.  By using such a word to hold the thread-id of the lock
+    owner, we can construct a lock that can handle a *very* large number of threads.
+
+    In this homework, we used \code{\_\_atomic\_\textrm{\ldots}} primitives:
+    \begin{description}
+      \item{\code{\_\_atomic\_load\_n(\textit{type} *ptr, int memorder)}:}
+	Load a value from memory and return it.
+	\begin{description}
+	  \item{\code{\textit{type}}:} is the type of the value.
+	    \code{\textit{type}} must be a type that the compiler recognizes as valid for atomic values.
+	    \code{int} is just fine.
+	  \item{\code{ptr}:} The memory location to be read.
+	  \item{\code{memorder}:}  The compiler generates code so that the specified memory ordering
+	    holds for this operation.  I was cautious and used \code{\_\_ATOMIC\_SEQ\_CST}.
+	\end{description}
+      \item{\code{\_\_atomic\_store\_n(\textit{type} *ptr, \textit{type} val, int memorder)}:}
+	Store a value in memory.
+	\begin{description}
+	  \item{\code{\textit{type}}:} is the type of the value.
+	  \item{\code{ptr}:} The memory location to be updated.
+	  \item{\code{val}:} The value to write to \code{*ptr}.
+	  \item{\code{memorder}:}  The compiler generates code so that the specified memory ordering
+	    holds for this operation.  Again, I was cautious and used \code{\_\_ATOMIC\_SEQ\_CST}.
+	\end{description}
+      \item{\code{\_\_atomic\_compare\_exchange\_n(\textit{type} *ptr, \textit{type} *expected,
+	\textit{type} desired, bool weak, int success\_memorder, int failure\_memorder)}:}\\
+	A compare-and-exchange operation.  \texttt{gcc} (or \texttt{clang}, etc.) compiles this
+	to a single machine instruction.
+	\begin{description}
+	  \item{\code{\textit{type}}:} the type of the values in the operation.
+	  \item{\code{ptr}:}
+	    The memory location to be tested, and updated if it presently holds the \code{*expected} value.
+	  \item{\code{expected}:}
+	    \code{*expected} is value that we hope to find at \code{*ptr}.  \code{expected} is a pointer because it will be updated with the value at \code{*ptr} if
+	    \code{*ptr != *expected}.
+	  \item{\code{desired}:}  The value to be written to memory at \code{ptr} if
+	    \code{*ptr == *expected}.
+	  \item{\code{weak}:}  Allow versions that ``may fail spuriously'', and the docs
+	    say ``When in doubt, use \code{weak == false}.  That's what I did.
+	  \item{\code{success\_memorder}:}  Memory model for the compiler to ensure when
+	    \code{*ptr == *expected}.
+	  \item{\code{failure\_memorder}:}  Memory model for the compiler to ensure when
+	    \code{*ptr != *expected}.
+	  \item{return value:} \code{true} if the compare succeeds (i.e.\ \code{*ptr == *expected}), and \code{false} otherwise.
+	\end{description}
+    \end{description}
+    For more details, see
+    \hrefc{https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html}{gcc docs for built-in atomic operations}.
+
+    With that explanation, we can now present our lock;
+    see \hrefc{\srcdir/cx.c}{\texttt{cx.c}}.  The acquire function is (with a few assertions elided for clarity):
+    \begin{xcode}
+      static void cx\_acquire(Lock *lock, int thread\_id) \{\\
+      \>int zero;\\
+      \>int id1 = thread\_id + 1;\\
+      \>int *data = (int *)(lock->data);\\
+      \>do \{\\
+      \>\>zero = 0;\\
+      \>\>while(\_\_atomic\_load\_n(data, \_\_ATOMIC\_SEQ\_CST));\\
+      \>\} while (!\_\_atomic\_compare\_exchange\_n(data, \&zero, id1, false, \=\_\_ATOMIC\_SEQ\_CST,\\
+      \>                                                                      \>\_\_ATOMIC\_SEQ\_CST));\\
+      \}
+    \end{xcode}
+    And here are some comments:
+    \begin{description}
+      \item{\code{zero = 0}:} \code{zero} is the value that we want to see in \code{*data} to be able
+	to acquire the lock.  Because \code{zero} is updated by
+	\code{\_\_atomic\_compare\_exchange\_n} when \code{*data != zero}, we restore it for each
+	iteration of the \code{do \{\textrm{~\ldots~}\}} loop.
+      \item{\code{while(\_\_atomic\_load\_n(data, \_\_ATOMIC\_SEQ\_CST))}}: spin until the lock is free.
+	The x86 assembly generated by \texttt{gcc -O2 -S cx.c} for this loop is:
+	\begin{xcode}
+	  .L2: \=movl\rule{0.5em}{0ex} \=(\%rdx), \%eax\rule{1.5em}{0ex} \={\color{CommentColor}; \%eax <- \code{*data}}\\
+	       \>testl                 \>\%eax, \%eax                    \>{\color{CommentColor}; \textrm{set condition flags}}\\
+	       \>jne                   \>.L2                             \>{\color{CommentColor}; \textrm{continue if \code{*data != 0}}}
+	\end{xcode}
+	The read of \code{*data} is done with a single instruction, and no special treatment for the memory model.
+      \item{\code{\} while (!\_\_atomic\_compare\_exchange\_n(\textrm{\ldots}))}:}
+	The atomic compare-and-exchange.  If it fails, we go back to spinning until \code{*data == 0}.
+	If it succeeds, we've acquired the lock and continue.
+	The x86 assembly generated by \texttt{gcc -O2 -S cx.c} for this is:
+	\begin{xcode}
+	  \phantom{.L2:} \=lock \=cmpxchgl \=\%esi, (\%rdx)\\
+                                \>jne      \=.L2\\
+				\>ret
+	  
+	\end{xcode}
+	Looking back a few lines in the assembly code (you can give the command \texttt{gcc -O2 -S cx.c}),
+	we can determine that \code{\$esi} is \code{id1} and \code{\%drx} is \code{data}.
+	Register \code{\%eax} is \emph{always} used for the expected value -- this is x86 assembly code;
+	I don't explain its odd quirks.
+	\par
+	An optimization that I noted is that there is no register for \code{zero}.
+	That's when the\\
+	\rule{1.5em}{0ex}\code{while(\_\_atomic\_load\_n(data, \_\_ATOMIC\_SEQ\_CST));}\\
+	loop terminates, the value from the load, which is in register \code{\%eax} must be \code{0}.
+	The compiler uses this \code{0} for \code{expected}.
+	Executing \code{cmpxchgl} sets the x86 condition flags.
+	If the value of \code{*data} not \code{0}, the \code{jne} goes back to the \code{while}-loop.
+	Otherwise, the lock is successfully acquired, and the function returns.
+    \end{description}
+    Releasing a lock is much simpler: just store \code{0} at \code{lock->data}.
+    See \code{cx\_release} in \hrefc{\srcdir/cx.c}{\texttt{cx.c}}.\medskip\\
+    \noindent%
+    And finally, \ldots {\large\textbf{More questions!}}
+    \begin{enumerate}\setcounter{enumii}{2}
+      \item (15 points) Consider an execution with $N$ threads numbered $1$ through $N$.
+	Assume that thread $1$ holds the lock, and that the other threads are spinning.
+	In this situation, threads $2$ through $N$ hold the cache line for \code{lock->data} in the \code{S} state.
+	For simplicity, assume that thread $1$ holds this cache line in the \code{S} state as well.
+	Describe the memory accesses that are performed and the cache-line state transitions
+	(e.g.\ from \code{S} to \code{I} or vice-versa) when thread 1 releases the lock,
+	one of the other threads acquires the lock, and the other threads resume spinning.
+    \end{enumerate}
+    Hints: there are many details I could add about exactly how a cache handles read-with-intent to write, and so on.
+    Here are some assumptions that I'll suggest to keep the problem simple:
+    \begin{itemize}
+      \item When a processor does a ``read-with-intent-to-write'',
+	if the cache line is in the \code{I} or \code{S} states, the value is read from memory, \textit{and}
+	the other caches are signaled with \emph{BusInv} to invalidate their entries
+	for that line.
+	If the cache line for the address is already in states \code{E} or \code{M}, no action with external memory
+	is needed.
+	In either case, cache moves to a new state, \code{L}.
+	When the processor writes to the address, the cache-line moves to state \code{M}.
+	If the compare part of the compare-and-swap fails,
+	then the processor signals to the cache to move to state
+	\code{M}.\footnote{
+	  Note: the cache moves to state \code{M} because it could have entered state
+	  \code{L} from any of the other states, i.e.\ \code{M}, \code{E}, \code{S}, or
+	  \code{I}.  If the cache was in state \code{M} when the read-with-intent-to-write
+	  operation starts, it must move to state \code{L} to prevent any state transitions
+	  until the read-with-intent to write operation finishes.
+	  Because he cache may have entered state \code{L} from state \code{M}, then
+	  we can't assume that main memory has the up-to-date value for the location.
+	  Thus, the cache moves to state \code{L} when leaving state \code{M}.
+	  \par
+	  Of course, cache designers can make variations on this.  We could have two
+	  version of the \code{L} state to indicate whether or not the cache line is dirty.
+	  Or, we could always do a write back at the end of the read-with-intent-to-write,
+	  just writing the value we read if the compare-and-exchange fails.
+	  I'm sure there are many other variations, and they've probably all been
+	  studied by those who have dedicated their careers to cache design.}
+	While the cache is in state \code{L}, it signals a stall to any other cache that requests the cache line
+	through a memory read or write.  The operation is delayed until the cache line moves to state \code{M} or \code{E},
+	and then the operation is handled according to the usual MESI protocol.
+	There are many ways we could optimize this protocol, but I want to keep it simple.
+      \item When threads $2$ through $N$ are spinning, you can assume that they all attempt to load from
+	\code{lock->data} on the same clock cycle.  If the loads hit in their caches, then they all get the
+	data locally; otherwise, each cache misses and they each issue a memory read.
+      \item When the thread for a cache starts a \code{cmpxchgl} instruction, all other caches invalidate their
+	lines for \code{lock->data}.  If multiple threads attempt a \code{cmpxchgl} at the same time,
+	there is memory-bus arbitration in the hardware that makes the threads do these operations one at a time.
+    \end{itemize}
+    Hint: you should find that a compare-and-exchange lock generates a lot of inter-cache and memory activity
+    when multiple threads are spinning and waiting for the lock.  Give a big-$\bigO$ characterization of how
+    much memory and inter-cache activity occurs.  There are better algorithms for locking.  By working this
+    example, you should get a good sense of how protocols like MESI work in real life.
+
+    Finally, a word about weak consistency.  Instructions such as \code{cmpxchgl} ensure that the write is
+    completed in main memory before the instruction completes.  This makes the write visible to all other
+    processors.  This also means that all previous writes by that processor will have propagated to main
+    memory.  It makes no guarantee about pending writes from other processors.
+
+
+%  \item Branch Prediction: (\textbf{35 points})\label{q:branch}\\
+%    Superscalar processors can execute multiple instructions in a single clock cycles.
+%    Typical programs have branches every 5 to 10 instructions, and processors tend to have
+%    deep execution pipelines; it can take five to ten or more clock cycles from fetching an
+%    instruction until its result is available.
+%    Conditional and computed branches are a headache for computer architects because we don't
+%    know what instruction to fetch next until the branch instruction completes.
+%    For example, if a branch takes five clock cycles to complete, and the superscalar processor
+%    fetches four instructions per clock cycles, \emph{twenty} instructions will be fetched between
+%    fetching a branch and knowing its outcome.  This likely included a few more branches!
+%    \par
+%    To address these issues, superscalar processors use branch prediction.
+%    A simple predictor simply counts the number of times the branch is taken or not.
+%    The counter is incremented if the branch is taken, and decremented when it is not taken.
+%    For example, we could have a three bit counter that saturates at \code{+3} or \code{-4}.
+%    If a branch is taken, and the counter is already at \code{+3}, it stays at \code{+3}.
+%    Likewise for decrementing the counter when the branch is not taken.
+%    When the branch is fetched, if the branch is predicted to be taken,
+%    the processor jumps to fetching from the branch target, and if the branch is predicted as untaken,
+%    the processor continues fetching the instructions immediately after the branch.
+%    See the reading on superscalar processors or the
+%    \hrefc{https://wwww.students.cs.ubc.ca:~cs-418/202401/lecture/10-11/slides.pdf}{Oct.\ 11} slides
+%    for more details.
+%    \par
+%    This problem explores the cost of branch misprediction.
+%    The key function for this is \code{ar\_op} in \hrefc{\srcdir/array.c}{\texttt{array.c}}.
+%    If we look at the assembly code for the \code{ar\_op} function,
+%    we find a conditional branch corresponding to the \code{i <  n-7}
+%    test of the \code{for}-loop, and a computed branch corresponding
+%    to the \code{switch} statement.
+%
+%    \begin{enumerate}
+%      \item (\textbf{10 points})
+%	Assume that the branch corresponding to \code{i < n-7} is \emph{taken} when
+%	\code{i < n-7} and not taken when \code{i >= n-7}.
+%	This is a slight simplification; in the actual assembly code, there is one branch at
+%	the beginning of the \code{ar\_op} function to make sure \code{n-7 >= 0}, and then
+%	a branch at the end of the for-loop body to branch back to the start of the loop body
+%	if \code{i < n-y}.
+%	\par
+%	With the assumptions of described in the previous paragraph, consider a call to
+%	\code{ar\_op(op, n)} \code{n > 7}.
+%	\begin{enumerate}
+%	  \item (\textbf{2 points}) How many times in total is the branch taken for this call to \code{ar\_op}?
+%	  \item (\textbf{2 points}) How many times in total is the branch not-taken for this call to \code{ar\_op}?
+%	  \item (\textbf{6 points}) If the branch-predictor uses the saturating counter method described above,
+%	    what fraction of the \code{i < n-7} branches will be predicted correctly?\\
+%	    Provide a brief (one or two sentences) justification for your answer.
+%	\end{enumerate}
+%
+%      \item (\textbf{5 points})
+%	Consider the branch corresponding to the switch statement, i.e.\ the branch
+%	that can go to one of eight \code{case}s depending on the value of
+%	\code{op[i + (acc \& y)]}.  For simplicity, assume that the branch predictor
+%	guesses that the branch goes to same place as the previous time the branch was executed.
+%	\begin{enumerate}
+%	  \item (\textbf{2 points}) If all elements of \code{op} are the same,
+%	    for example \code{op[i] = 0} for all \code{0 <= i < n}, what fraction of the
+%	    \code{op[i + (acc \& y)]} branches will be predicted correctly?
+%	  \item (\textbf{3 points}) If the elements of \code{op} are uniformly random with
+%	    \code{0 <= op[i] < 8} for all \code{0 <= i < n}, what fraction of the
+%	    \code{op[i + (acc \& y)]} branches will be predicted correctly?
+%	    \par
+%	    Note: this is only an approximation because there is some correlation of
+%	    \code{acc \& 7} and \code{prev \& 7}.  We will ignore that.
+%	\end{enumerate}
+%
+%      \item (\textbf{15 points})
+%	Compile and run \texttt{op}  on \code{thetis.students.cs.ubc.ca} or
+%	\code{gambier.student.cs.ubc.ca}.  The command\\
+%	\rule{1.5em}{0ex}\texttt{./op 1000 100 10000 const0}\\
+%	will give the mean and standard deviation for the time to execute \code{ar\_rand}
+%	with \code{n=1000} and randomly distributed elements for \code{op}.
+%	In a bit more detail, the command is\\
+%	\rule{1.5em}{0ex}\texttt{./op n\_op ntrials runs\_per\_trial dist}\\
+%	where
+%	\begin{description}
+%	  \item{\code{n\_op}}: number of elements in the \code{op} array.
+%	  \item{\code{n\_trials}}: Perform \code{ntrials} timing measurements.
+%	    Report the mean and standard deviation.
+%	  \item{\code{runs\_per\_trial}}: Each timing measurement consists of
+%	    calling \code{ar\_op(op, n\_op)} \code{runs\_per\_trial} times.
+%	    The total time for each measurement is dividdd by \code{runs\_per\_trial}
+%	    to get a value for the time per call to \code{ar\_op}.
+%	    This is because the time for an individual call is short enough to introduce
+%	    large clock quantization errors.
+%	  \item{\code{dist}}: The distribution to use for the elements of \code{op}.
+%	    \code{dist="rand"} generates random elements with each element in \code{0}, \ldots, \code{7}.
+%	    \code{dist="constN"} where \code{N} is a decimal digit sets each element to \code{N}.
+%	    \code{"c"} is an abbreviation for \code{"const0"}.
+%	\end{description}
+%	\begin{enumerate}
+%	  \item (\textbf{5 points}) Include a table of your raw timing data for your answers to this the remaining
+%	    parts of this question.
+%	  \item (\textbf{5 points}) By running \texttt{./op} with random and constant distributions for the elements
+%	    of \code{op}, determine the branch mispredict penalty, in nanoseconds,
+%	    for executions on \code{gambier} or \code{thetis}.
+%	  \item (\textbf{5 points}) The Intel Xeon E5-2698 v3 processors in \texttt{thetis} and \texttt{gambier}
+%	    have a base CPU clock frequency of 2.3GHz and a boost-clock frequency of 3.6GHz.
+%	    How many clock-cycles is the branch-mispredict penalty if the CPU is operating at the base clock?
+%	    How many clock-cycles is the branch-mispredict penalty if the CPU is operating at the boost clock?
+%	    \par
+%	    If \texttt{thetis} or \texttt{gambier} is lightly loaded, you should see the boost-clock
+%	    performance, but I'm not absolutely certain of that.
+%	\end{enumerate}
+%
+%      \item (\textbf{5 points})
+%	I count 14 to 18 x86 instructions per iteration of the \code{for(i=0; \ldots)} loop in
+%	\code{ar\_op}.  Let's take the midpoint of 16 instructions per iteration.
+%	Assuming the boost clock rate of 3.6GHz, how many instructions does the \texttt{thetis}
+%	or \texttt{gambier} execute per clock cycle based on your data above?
+%	\par
+%	Note: the number that you get from this estimate is probably a bit high.
+%	The x86 internally translates x86 instructions into ``simpler'', ROPs, roughly RISC instructions.
+%	In the process, it appears to do some local optimizations.
+%	For example, I expect that it figures out how eliminate some of the inefficiencies that occur
+%	because the x86 instruct set only has eight programmer visible registers.
+%	The ROP count might be closer to 9 to 12 operations per loop iteration,
+%	but I don't know of a way to check the details.
+%    \end{enumerate}
+%    
+%
+%    \begin{figure}\begin{center}
+%      \begin{xcode}xxxx\=xxxx\=xxxx\=xxxx\=xxxx\=\kill
+%	  int ar\_op(int *op, int n) \{\+\\
+%	      int prev = 0, acc = 0, next = 0;\\
+%	      for(int i = 0; i < n-7; i++) \{\+\\
+%		  switch (op[i + (acc \& 7)]) \{\+\\
+%		      case 0: next = prev + acc; break;\\
+%		      case 1: next = prev - acc; break;\\
+%		      case 2: next = prev \& acc; break;\\
+%		      case 3: next = prev | acc; break;\\
+%		      case 4: next = prev \textasciicircum{} acc; break;\\
+%		      case 5: next = acc + 0x1357; break;\\
+%		      case 6: next = acc \textasciicircum{} 0x1357; break;\\
+%		      case 7: next = acc <{}< 11; break;\\
+%		  \}\-\\
+%		  prev = acc;\\
+%		  acc = next;\\
+%	      \}\-\\
+%	      return(acc);\\
+%	  \}\-\\
+%      \end{xcode}
+%      \caption{The \code{ar\_op} function for Question~\ref{q:branch}}
+%    \end{center}\end{figure}
+
+  \item Hypercube Congestion: (\textbf{42 points})\label{q:congestion}\\
+    Consider a $d$ dimensional hypercube.  For this problem, we will assume that $d$ is even.
+    For this problem, we will use dimension routing, where messages are first routed according
+    to the least significant bit of their destination.
+    When writing addresses below as lists below, we will write them with the least-significant
+    bit at the left and the most significant bit at the right, i.e. ``little-endian'' ordering.
+    Sadly, Erlang uses 1-based indexing;
+    so, lists:nth(1, Addr) returns the $0^{th}$ bit of Addr,
+    and more generally, \code{lists:nth(I+1, Addr)} returns $\code{I}^{th}$ bit.
+    For example if a node has address \code{[0,1,0,1]},
+    the least-significant bit of the address is \code{0},
+    and the most-significant bit is \code{1}.
+
+    The route when $d=4$ node \code{[0,1,0,1]} to node \code{[1,1,0,0]} using dimension routing is:
+    \begin{displaymath}\begin{array}{rcll}
+      \code{[0,1,0,1]} &\rightarrow& \code{[1,1,0,1]} & \code{\xcomment{route on address bit 0}}\\
+			     &\rightarrow& \code{[1,1,0,1]} & \code{\xcomment{route on address bit 1}}\\
+			     &\rightarrow& \code{[1,1,0,1]} & \code{\xcomment{route on address bit 2}}\\
+			     &\rightarrow& \code{[1,1,0,0]} & \code{\xcomment{route on address bit 3}}
+    \end{array}\end{displaymath}
+    \begin{enumerate}
+      \item (\textbf{3 points})\setcounter{enumiisave}{\value{enumii}}
+	Describe the route from node \code{[1,0,1,1]} to node \code{[0,1,1,0]} in
+	the same style as the example above.
+    \end{enumerate}
+    We say that there is congestion if two messages want to traverse the same link at the same step.
+    For example, consider what happens when the two messages below are sent at the same time:
+    \begin{description}
+      \item{Message 1:}
+        the processor at node \code{[0,1,0,1]} sends a message to node \code{[1,0,0,1]};
+      \item{Message 2:}
+	the processor at node \code{[1,1,0,1]} sends a message to node \code{[1,0,1,0]}.
+    \end{description}
+    Using dimension routing, we get:
+    \begin{displaymath}\begin{array}{rcl|rcl|l}
+      \multicolumn{3}{c}{\color{CodeColor}\textrm{Message 1}} &
+      \multicolumn{3}{c}{\color{MediumRed}\textrm{Message 2}} &
+      \code{\xcomment{Remark}}\\\hline
+      \code{[0,1,0,1]} &\rightarrow& \code{[1,1,0,1]} &
+      \code{\color{MediumRed}[1,1,0,1]} &\rightarrow& \code{\color{MediumRed}[1,1,0,1]} &
+      \code{\xcomment{route on address bit 0}}\\
+      \code{[1,1,0,1]} &\rightarrow& \code{[1,0,0,1]} &
+      \code{\color{MediumRed}[1,1,0,1]} &\rightarrow& \code{[1,0,0,1]} &
+      \code{\xcomment{{\color{MediumRed}congestion} on address bit 1}}
+    \end{array}\end{displaymath}
+    Congestion is undesirable because it means that one of the messages has to wait in a buffer
+    while the other is sent across the congested link.
+    If a routing pattern causes congestion,
+    then the program won't get the maximum bandwidth of the hypercube network.
+
+    \begin{enumerate}\setcounter{enumii}{\value{enumiisave}}
+      \item (\textbf{3 points})\setcounter{enumiisave}{\value{enumii}}
+	Give a pair of routes of the form \code{Src1$\,\rightarrow\,$Dst1} and
+	\code{Src2$\,\rightarrow\,$Dst2} such that both routes can be performed at the
+	same time using dimension routing on a 4-dimensional hypercube without congestion.
+	Describe how the messages move at each step as in the example above.
+      \item (\textbf{3 points})\setcounter{enumiisave}{\value{enumii}}
+	Give a pair of routes of the form \code{Src1$\,\rightarrow\,$Dst1} and
+	\code{Src2$\,\rightarrow\,$Dst2} such that congestion occurs when both routes are performed at the
+	same time using dimension routing on a 4-dimensional hypercube.
+	Describe how the messages move at each step as in the example above.
+	I gave such an example above.  To get credit, you must give a \emph{different} example.
+    \end{enumerate}
+
+    We want an example that causes severe congestion in the hypercube.
+    To define congestion we will first define a ``traffic pattern''.
+    A traffic pattern is a list of \code{\tuple{Src, Dst}} tuples, where
+    \code{Src} and \code{Dst} are node addresses.
+    For each element of the list, a message is to be sent from the \code{Src}
+    node \code{Dst}.  We will say that a traffic pattern is crossbar-routable
+    in one step if there are no two tuples with the same \code{Src} node,
+    and there are no two tuples with the same \code{Dst} node.
+
+    A traffic pattern that is crossbar-routable in one step may cause congestion
+    on a hypercube using dimension routing.
+    For example, on a 4-dimensional traffic pattern the traffic pattern:
+    \begin{xcode}
+      [\tuple{[0,1,0,1], [1,0,0,1]}, \tuple{[1,1,0,1], [1,0,0,0]}]
+    \end{xcode}
+    is cross-bar routable in one step but causes congestion on a hypercube using
+    dimension routing when both messages need to use the dimension-1 link from node \code{[1,1,0,1]}
+    to node \code{[1,0,0,1]}.
+    We can create a traffic pattern where the congestion grows as the square root
+    of the number of processors in the hypercube.
+
+    For simplicity, let \code{D}, the dimension of the hypercube be even.
+    We can divide a node address, \code{Addr} into to sublists, \code{Left} and \code{Right},
+    each of length \code{D div 2} such that \code{Addr = Left++Right}.
+    For example, if \code{D=8} and \code{Addr=[0,1,1,0,\rule{0.2em}{0ex}1,0,1,1]}, then
+    \code{Left=[0,1,1,0]} and \code{Right=[1,0,1,1]}.
+    We will say that the \emph{transpose} of \code{Addr} is \code{Right++Left}.
+    \code{hw4:traffic(D)} generates the traffic pattern where each node in a \code{D}-dimensional hypercube
+    sends a message to its transpose.
+    This pattern is crossbar routable in one step because transpose is one-to-one.
+    As you are about to prove, it also creates bad congestion for a hypercube.
+
+    \begin{enumerate}\setcounter{enumii}{\value{enumiisave}}
+      \item (\textbf{3 points})
+	The function
+	\begin{xcode}
+	  \erllib:congestion\_0(D) -> \tuple{MaxCongestion, MaxCongestedLinks}
+	\end{xcode}
+	where \code{MaxCongestion} is the number of messages conveyed by the most congested
+	link of a \code{D}-dimensional hypercube for the \code{hw4:traffic(D)} traffic-pattern.
+	\code{MaxCongestedLinks} is the number of links that convey \code{MaxCongestion}
+	messages.
+	\par
+	Report \code{MaxCongestion} and \code{MaxCongestedLinks} for \code{D=2}, \code{4},
+	\code{6}, \code{8}, and \code{10}.
+	Show from the date you reported that for these examples $\code{MaxCongestion} = \frac{1}{2}2^{D/2}$
+	and $\code{MaxCongestedLinks} = 2*2^{D/2}$.
+      \item (\textbf{10 points})
+	\code{hw4\_lib:congestion\_0(D)} gets rather slow as \code{D} grows.
+	The function \code{\erllib:congestion(D)} is much faster, but you need to
+	implement \code{hw4:link\_counts(SrcDstList)} for the faster version to work.\\
+	Implement \code{hw4:link\_counts(SrcDstList)}.\\
+	\begin{itemize}
+	  \item There are many hints in the comments in \texttt{hw4.erl}.
+	  \item Why do this?  In many ways, this is a fairly straightforward problem.
+	    I'm including it as a ``check-point''.  If you understand dimension routing,
+	    and how we created the \code{SrcDstList} in \code{hw4:traffic(D)}, then
+	    writing \code{hw4:link\_counts(SrcDstList)} should be straightforward.
+	    If it's not, then this is a good chance to figure out what you need to
+	    understand before you try the last two parts of this problem.
+	  \item Testing your implementation of \code{hw4:link\_counts(SrcDstList)} should
+	    be easy:  just check that \code{hw4\_lib:congestion(D) =:= hw4\_lib:congestion\_0(D)}.
+	\end{itemize}
+      \item (\textbf{5 points})
+	Identify any one of the 32 links that has conveys the \code{MaxCongestion} messages
+	for \code{hw4\_lib:congestion(8)} (or, equivalantly, for \code{hw4\_lib:congestion\_0(D)}).
+	Describe the link in the form \code{\tuple{NodeAddress, K}} where \code{K} is the
+	dimension associated with the link, i.e.\ \code{0 =< K < D}.
+	State the eight \code{\tuple{Src,\code{Dst}}} pairs that created these eight messages
+	for this link.
+	\begin{itemize}
+	  \item You can solve this as a coding problem.
+	  \item Why do this?  How you have a concrete example for the final part of this problem.
+	  \item If one concrete example isn't enough doesn't help you see how to solve the final part,
+	    then you might want to try generating more examples for different values of \code{D}
+	    or different maximally congested links.
+	\end{itemize}
+      \item (\textbf{15 points}) Show that for a \code{D} dimensional hypercube there
+	is at least one link that conveys $\frac{1}{2}2^{D/2}$ messages when routing the
+	\code{hw4:traffic(D)} pattern.  This should be a mathematical argument that
+	works for any \code{D} that is a positive, even integer.
+	In other words, you should take your observations from the previous parts of this problem
+	and use them to formulate and justify a general result.
+    \end{enumerate}
+
+  \item Queues: (\textbf{36 points})\label{q:q}\\
+    The Dragonfly paper frequently refered to the message queues in the Dragonfly router.
+    This question is an introduction to simple queues so we can explore the impact of
+    queues in message routing in a future assignment.
+
+    A common example for introducing queues is a retail store.  Customers arrive at the
+    store and subsequently at the cashier at a rate of $\lambda$ customers per hour.
+    We assume that the customer arrivals are statistically independent events --
+    e.g.\ we don't have a bus or train that delivers a huge number of customers all
+    at once and then a big gap until the next bus or train arrives.  With this
+    assumption of independence, it can be show that the amount of time between
+    two customers arriving is exponentially distributed:
+    \begin{displaymath}\begin{array}{rcl}
+      P\{(\textrm{time between customer arrivals}) > t\} &=& e^{-\lambda t}
+    \end{array}\end{displaymath}
+    We'll write $m_a$ to denote the average time between the arrivals
+    of two consecutive customers; $m_a = 1/\lambda$.
+    The function \code{hw4\_lib:expDist(M\_a)}
+    returns a function that provides samples from an exponential distribution
+    with mean \code{M\_a}.
+    For example:
+    \begin{SmallCode}
+      \eprompt{} Exp2 = hw2\_lib:expDist(2),\\
+      \xout{\#Fun<hw4\_lib.0.93202345>}\\
+      \eprompt{} [ Exp2() || \_ <- lists:seq(1,10)].\\
+      \xout{[0.1713282082900304,1.6155340550767132,1.334425942758621,} \\
+      \xout{\phantom{x}0.7614403269496659,3.307862051970613,0.44543298194790326,}\\
+      \xout{\phantom{x}3.1505387643300136,0.6458216282019269,2.8517732640277695,}\\
+      \xout{\phantom{x}5.386802172521248]}
+    \end{SmallCode}
+
+    For simplicity we assume that the store has only one cashier and that the time
+    for the cashier to check out a customer is also exponentially distributed with
+    a mean of $m_s$.
+    We write $\mu$ to denote the average \emph{rate} of checking out customers;
+    $\mu = 1/m_s$.
+    A queue where the arrival times and service times are exponentially distributed
+    and there is one server (e.g.\ the cashier) is calle a
+    called a \hrefc{https://en.wikipedia.org/wiki/M/M/1_queue}{M/M/1} queue.
+    M/M/1 queues have a mathematical simplicity that makes them the starting model
+    for queues.
+
+    If a customer arrives at checkout while the cashier is busy, they form a queue.
+    The length of the queue is the number of waiting customers, including any
+    customer who is currently being serviced.
+    This question explores the average length of this queue.
+    For the M/M/1 queue the answer is known:
+    If $m_a > m_s$, then the average queue length is $1/((m_a/m_s) - 1)$;
+    otherwise, the queue grows without bound.
+    We will show this by simulation instead of derivation, which has the
+    advantage that we can use the same approach to variations on this queue
+    where analytical approaches are impractical.
+    %
+    \par\noindent%
+    The function\\
+    \rule{1.5em}{0ex}\code{\erllib{}:sim\_len\_ms(N\_trials, N\_warmup, N\_run, R\_a, R\_s)}\\
+    returns a keylist of the form\\
+    \rule{1.5em}{0ex}\code{[\tuple{mean, Mean}, \tuple{std, Std}]}\\
+    where \code{Mean} is the average queue length from the simulation and \code{Std} is
+    the standard deviation.
+    I'll describe the parameters right-to-left:
+    \begin{description}
+      \item{\code{R\_s}} should be a function that takes no arguments.
+	\code{R\_s}() returns samples of the service time.
+	For example if \code{R\_s = \erllib:expDist(Mean)}, R\_s() will return samples
+	of an exponentially distributed random variable with mean \code{Mean}.
+      \item{\code{R\_a}} should be a function that takes no arguments that
+	returns samples of the time between arrivals.
+      \item{\code{N\_run}:} the \code{Mean} and \code{Std} returned by \code{sim\_len\_ms}
+	are computed over a sequence of \code{N\_run} events where an event is either an
+	arrival or a service.
+      \item{\code{N\_warmup}:} we start with an empty queue.  Obviously, this is below the
+	average queue length, and the expected queue length will asymptotically approach
+	the limit value of $\left(\frac{m_a}{m_a} - 1\right)^{-1}$ as more events are processed.
+	Thus, \code{sim\_len\_ms} simulates the queue for \code{N\_warmup} steps \emph{before} 
+	it starts to accumulate samples for computing the mean.
+	I found that the results seem fairly stable if \code{N\_warmup >= $\code{10*MeanLen}^2$},
+	where \code{MeanLen} is the average queue length.
+	Of course, this means you need to guess the queue length to measure it.
+	I'll address this chicken-and-egg problem below.
+      \item{\code{N\_trials}:} \code{sim\_len\_ms} runs \code{N\_trials} trials, and reports
+	the mean and standard deviations frome them.
+    \end{description}
+    %
+    \par\noindent%
+    \textbf{Now for the questions.}
+    \begin{enumerate}
+      \item \textbf{Measure the queue length using simulation.} (6 points)\\
+	\code{\erllib:sim\_len\_ms(100, 100000, 10000, \erllib:expDist(M\_a), \erllib:expDist(1.0))}
+	performs 100 trials, where each trial has a warm-up of 100,000 steps, and then computes
+	the average queue length over 10,000 more steps.  Measure the average queue length for
+	\code{M\_a $\in$ $\{3, 2, 1.5, 1.1, 1.05\}$}.
+	Report your raw data using the median of 5 runs for each value of \code{M\_a}.
+	Provide a table with a row for \code{M\_a} and a row for the corresponding average
+	queue lengths (medians).
+	Do the measurements seem reasonably close to the formula?
+	Feel free to include a plot in your solution if you think it adds to the clarity.
+      \item \textbf{Impact of service time distribution.} (6 points)\\
+	Now consider\\
+	\rule{1.5em}{0ex}%
+	\code{\erllib:sim\_len\_ms(100, 100000, 10000, \erllib:expDist(1.0), R\_s)}\\
+	for \code{R\_s $\in$ $\{\code{\erllib:expDist(1.0), \erllib:constDist(1.0),
+				      \erllib:erlangDist(1.0, 5)}\}$}.
+	Report your measurements.
+	What patterns or trends do you observe?
+	Feel free to try changing the distribution or mean for \code{R\_a} or other experiments
+	if this helps you understand the queue better.\medskip\\
+	Answers will be graded by your showing that you thought about the data that you saw,
+	and tried experiments to test your hypotheses.  You are welcome to find references about
+	queues -- make sure you cite them.
+
+      \item \textbf{Make it parallel: \code{par\_len}.} (10 points)\\
+	Write \code{hw4:par\_len/5} which is a parallel version of \code{\erllib:sim\_len/4}.
+	and \code{\erllib:sim\_len\_ms/4}.
+	The function \code{\erllib:sim\_len/4} returns a tuple structure for computing
+	simple statistics.
+	Use \code{wtree:reduce}.
+	The function \code{stat:combine/2} can make your life easier from the course library --
+	see the \hrefc{https://www.students.cs.ubc.ca/~cs-418/resources/erl/doc/index.html}{docs}.
+
+      \item \code{par\_len\_ms} (4 points)\\
+	The function \code{\erllib:sim\_len\_ms/4} calls \code{\erllib:sim\_len/4}
+	and then uses the functions \code{stat:mean/1} and \code{stat:std/1} from
+	the course library to compute the mean and standard deviation.
+	You are encouraged to look at the code in \code{\erllib.erl} and use that as a template
+	for your \code{par\_len\_ms}.
+
+      \item \textbf{Measure Speed-Up} (10 points)\\
+	Measure the speed-up for your implementation of \code{par\_len\_ms}.
+	Make your timing measurements on \code{thetis} or \code{gambier}.
+	This time, you decide how to make your measurments.
+	Please describe how you measured the speed-ups, and give your reasons for your
+	design choices.
+    \end{enumerate}
+    \textbf{Hint:} This problem is a simple example of reduce.
+    My \code{par\_len} function is eight lines long,
+    and my \code{par\_len\_ms} function is three lines.
+    The purpose of this problem is to reinforce using reduce and scan with another example.
+    It should have been on HW2, but I hadn't worked out a ``gentle'' introduction to queueing
+    theory in time for that assignment.
+    We are deliberately giving you more flexiblity for the code writing and measurements.
+    This is to give you experience applying the ideas you've learned in class.
+   
+  \item Work-Span and Dynamic Programming: \textbf{(30 points)}\\
+    Dynamic programming is a method for solving optimization problems when we have a way of breaking the
+    problem into smaller problems, we can define an ordering of the sub-problems, and it's ``easy'' to
+    solve a sub-problem once all of the sub-problems that are earlier in the ordering have been solved.
+    A classical example is the editing distance between two strings: if we have two strings, $s_1$ and $s_2$,
+    and have a costs associated with inserting a character, $c_{\mathit{ins}}$,
+    a cost for deleting a character, $c_{\mathit{del}}$, and
+    a cost for replacing a character with another one, $c_{\mathit{rpl}}$,
+    what is the minimum cost sequence of operations that transforms string $s_1$ into string $s_2$?
+    See, for example,\\
+    \rule{1.5em}{0ex}\textit{\hrefc{https://doi.org/10.1016/0022-2836(70)90057-4}{A general method applicable to the search for similarities in the amino acid sequence of two proteins}},\\
+    S.B.\ Needleman \& C.D.\ Wunsch.
+
+    Let's say that $s_1$ has $n$ characters and $s_2$ has $m$ characters.
+    We can solve the editing distance problem by filling in a $(n+1) \times (m+1)$ tableau, $T$.
+    Initialize $T(0, 0:m)$ and $T(0:n, 0)$ with
+    \begin{displaymath}\begin{array}{rcl}
+      T(0, j) = j*c_{ins}\\
+      T(i, 0) = i*c_{del}
+    \end{array}\end{displaymath}
+    For each $(i,j)$ with $0 < i < n$ and $0 < j < m$,
+    if we have filled in $T(i-1, j-1)$, $T(i-1, j)$, and $T(i, j-1)$, the we can set $T(i,j)$ according to:
+    \begin{displaymath}
+      \begin{array}{rcl}
+	T(i,j) &=& \left\{\begin{array}{ll}
+	  \min(T(i-1, j-1), T(i-1, j) + c_{del}, T(i,j-1) + c_{ins}), & \textrm{if $s_1(i) = s_2(j)$}\\
+	  \min(T(i-1, j-1) + c_{rpl}, T(i-1, j) + c_{del}, T(i,j-1) + c_{ins}), & \textrm{if $s_1(i) \neq s_2(j)$}
+	\end{array}\right.
+      \end{array}
+    \end{displaymath}
+    In English, this means:
+    \begin{itemize}
+      \item If we have already matched the first $i-1$ characters of $s_1$ to the first $j-1$ characters of $s_2$
+	with a cost of $T(i-1, j-1)$, then
+	\begin{itemize}
+	  \item if the $i^{th}$ character of $s_1$ matches the $j^{th}$ character of $s_2$,
+	    then we can match the first $i$ characters of $s_1$ to the first $j$ characters of $s_2$ with a cost
+	    of $T(i-1, j-1)$.  In other words, there is no cost if the corresponding character match.
+	  \item otherwise,
+	    we can match the first $i$ characters of $s_1$ to the first $j$ characters of $s_2$ with a cost
+	    of $T(i-1, j-1) + c_{\mathit{rpl}}$.  In other words, we replace the $i^{th}$ character of $s_1$ with the
+	    $j^{th}$ character of $s_2$.
+	\end{itemize}
+      \item If we have already matched the first $i-1$ characters of $s_1$ to the first $j$ characters of $s_2$
+	with a cost of $T(i-1, j)$,
+	then we can match the first $i$ characters of $s_1$ to the first $j$ characters of $s_2$
+	with a cost of $T(i-1, j) + c_{\mathit{del}}$, by deleting the $i^{th}$ character of $s_1$.
+      \item If we have already matched the first $i$ characters of $s_1$ to the first $j-1$ characters of $s_2$
+	with a cost of $T(i, j-1)$,
+	then we can match the first $i$ characters of $s_1$ to the first $j$ characters of $s_2$
+	with a cost of $T(i, j-1) + c_{\mathit{ins}}$, by inserting the $j^{th}$ character of $s_2$ into $s_1$.
+    \end{itemize}
+    We choose the cheapest of these options for the cost of $T(i, j)$.
+    Note that there is never an advantage of choosing a more expensive solution for $T(i, j)$ when finding
+    solutions that are later in the tableau.
+    \par
+    Of course, we want a parallel solution to this problem.
+    There are many published papers on parallel implementations of dynamic programming algorithms.
+    Here, we will examine the problem from the perspective of the work-span model.
+    For the questions below, assume that $s_1$ and $s_2$ are both of the same length, $n$.
+
+    \begin{enumerate}
+      \item (\textbf{5 points})\\
+	\label{q:dynamic.work} What is the \emph{Work} in the work-span model for solving the editing distance
+	using the dynamic programming approach described above when $s_1$ and $s_2$ when are both of length $n$?
+	Ignore the cost of initialization and just determine the cost of filling in $T(i,j)$ for
+	$1 \leq i \leq n$, and $1 \leq j \leq n$.
+	If you want a working example, try filling in the tableau where $s_1$ is \code{"length"} and
+        $s_2$ is \code{"slings"}.
+      \item (\textbf{5 points})\\
+	\label{q:dynamic.span} What is the \emph{Span} in the work-span model when $s_1$ and $s_2$ are both of
+	length $n$?
+      \item (\textbf{5 points})\\
+	Let $\speedup(n, p)$ denote the \emph{optimal} speed-up according to work-span when using $p$ processors
+	and $s_1$ and $s_2$ are of length.
+	What is the lower bound from $\speedup(n, p)$ given by Brent's lemma.  You may start by stating the
+	definition of Brent's lemma using $T_1$, $T_{\infty}$, and $p$, but that's not a complete answer.
+	Use your formulas for $T_1$ and $T_{\infty}$ from questions~\ref{q:dynamic.work} and~\ref{q:dynamic.span}
+	and then simplify your formula.
+      \item (\textbf{5 points})\\
+	Derive the actual value of $\speedup(n, p)?$.  In other words, what is the minimum number of time-steps
+	to perform dynamic programming with $p$ processors on inputs of length $n$ assuming zero communication costs.
+	Show that the optimal speed-up is greater than the lower bound from Brent's lemma, and give a one or two sentence
+	explanation of why this is the case for this particular algorithm.
+	%
+	\par\noindent%
+	Feel free to simplify your formulas by ignoring $+1$ and $-1$ additive constants.
+	Clearly state when you make such approximations -- using a $\approx$ instead of $=$
+	is one qay to ``clearly state\ldots''.
+      \item (\textbf{5 points})\\
+        Show that $\speedup(n, \infty)$ can be achieved with fewer than $\infty$ processors.
+	Give a formula the smallest number of processors that can be used to achieve $\speedup(n, \infty)$ as a function of $n$.
+	We will write $p_{\max}(n)$ to denote this number of processors.
+	Thus, $\speedup(n, p_{\max}(n)) = \speedup(n, \infty)$.
+      \item (\textbf{5 points})\\
+        Let $E(n)$ denote the parallel efficiency when $p = p_{\max}(n)$.
+	What is $\lim_{n \rightarrow \infty} E(n)$.
+	Explain why the efficiency you calculated above is less than one.
+	Refer to the causes of performance loss that we described in class.
+    \end{enumerate}
+\end{enumerate}
+
+\vfill
+\parbox{0.16\textwidth}{
+  \includegraphics[width=0.16\textwidth]{cc-by}
+}\hfill\parbox{0.80\textwidth}{
+  \footnotesize
+  Unless otherwise noted or cited,
+  the questions and other material in this homework problem set is copyright 2025 by Mark Greenstreet
+  and are made available under the terms of the Creative Commons Attribution 4.0 International license
+  \url{http://creativecommons.org/licenses/by/4.0/}
+}
+\end{document}
