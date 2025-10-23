@@ -44,3 +44,13 @@ build/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# C files
+
+*.o
+
+# C executables (no file extension)
+lock
+cx
+dekker
+op
