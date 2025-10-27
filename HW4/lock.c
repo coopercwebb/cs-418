@@ -43,13 +43,15 @@ void *my_thread(void *void_arg) {
     r = 23 * r & 0x3f;
     twiddle(r);
 
-    /* aquire the lock */
+    /* acquire the lock */
     lock->acquire(lock, thread_id);
 
     /* critical section */
     for (int j = 0; j < 10; j++) {
       count[thread_id] = j;
-      if (count[!thread_id]) {
+
+      if (count[!thread_id]) { // checking the count of the other thread. should
+                               // be 0 if lock is working correctly.
         error_count++;
         break;
       }
