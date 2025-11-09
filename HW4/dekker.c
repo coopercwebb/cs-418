@@ -39,7 +39,8 @@ static void dk_acquire(Lock *lock, int thread_id) {
       true; /* indicate intention to enter critical region */
   while (data->flag[!thread_id]) {
     if (data->turn != thread_id) {
-      data->flag[thread_id] = false;  /* give the other thread a chance */
+      data->flag[thread_id] = false; /* give the other thread a chance */
+      twiddle(10240); /* backoff, allow flag to propegate to memory */
       while (data->turn != thread_id) /* spin waiting for turn */
         ;
       data->flag[thread_id] = true; /* try again */

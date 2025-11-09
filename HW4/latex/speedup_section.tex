@@ -1,0 +1,49 @@
+% Speedup Benchmarking Section for HW4
+
+\textbf{Methodology:}
+
+The performance benchmarking methodology for \code{par\_len} closely follows the approach used in HW1 for parallel prime finding. The benchmark implementation can be found in \code{hw4\_test.erl} (lines 262-365). The implementation uses the \code{time\_it:t/1} function from the course library to measure execution times. Key similarities to HW1 methodology:
+\begin{itemize}
+    \item \textbf{Baseline measurement}: Sequential version (\code{hw4\_lib:sim\_len\_ms}) establishes baseline performance
+    \item \textbf{Multiple worker configurations}: Tests with varying numbers of workers to identify optimal parallelism
+    \item \textbf{Large workload}: Uses N\_trials = 200, N\_warmup = 10000, N\_run = 5000
+    \item \textbf{Timing methodology}: \code{time\_it:t/1} runs the timed function repeatedly until at least 1 second elapsed
+    \item \textbf{Speedup calculation}: Speedup = $\frac{\text{Sequential Time}}{\text{Parallel Time}}$
+\end{itemize}
+
+\textbf{Results:}
+
+Measured on thetis.students.cs.ubc.ca with arrival rate $R_a = \text{expDist}(1.5)$ and service rate $R_s = \text{expDist}(1.0)$.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Workers} & \textbf{Time (s)} & \textbf{Speedup} \\
+        \hline
+        1 (seq)          & 1.859             & 1.00×            \\
+        \hline
+        2                & 0.947             & 1.96×            \\
+        \hline
+        4                & 0.549             & 3.38×            \\
+        \hline
+        8                & 0.254             & 7.33×            \\
+        \hline
+        16               & 0.151             & 12.34×           \\
+        \hline
+        32               & 0.116             & 16.01×           \\
+        \hline
+        64               & 0.073             & 25.63×           \\
+        \hline
+        128              & 0.060             & 30.85×           \\
+        \hline
+        256              & 0.055             & 34.07×           \\
+        \hline
+        512              & 0.055             & 33.78×           \\
+        \hline
+        1024             & 0.055             & 33.60×           \\
+        \hline
+    \end{tabular}
+\end{table}
+
+The implementation achieves approximately \textbf{34× speedup} at 256 workers.

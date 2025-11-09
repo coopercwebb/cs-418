@@ -2,11 +2,14 @@
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
 \usepackage{upquote}
+\usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{wasysym}
 \usepackage{hyperref}
 \usepackage{color}
 \usepackage{epsfig}
+\usepackage{multirow}
+\usepackage{float}
 \setlength{\oddsidemargin}{0in}\setlength{\textwidth}{6.5in}
 \setlength{\topmargin}{0.0in}\setlength{\textheight}{8.5in}
 \input{cs418-macros}
@@ -66,7 +69,26 @@ it on CS department linux machines.
                     what was useful in the response.
               \item Other sources such as books should be just cited clearly.
           \end{itemize}
-          For each collaborator, list what questions you collaborated on.
+          For each collaborator, list what questions you collaborated on. \\
+          \begin{answer}
+              Anthropic Sonnet 4.5 for some questions, latex formatting, and testing. \\
+              \\
+              Contributions: \\
+              1.b Latex table generation based on data. \\
+              1.c Helped with this question, conceptual \\
+              2.d I asked it to format the table based on erlang results and calculate max congestion formula. \\
+              2.e Partial code generation, listed in hw4.erl \\
+              2.f Understood how to solve the problem, had sonnet implement solution \\
+              2.g Generated the proof based on 2.f observations \\
+              3.a Generated the table based on erlang results, calculated formula \\
+              3.b Generated the table based on erlang results, gave conclusions \\
+              3.c Generated par\_len based on a description and previous reduce patterns from \code{mt1.erl} \\
+              3.d Generated par\_len\_ms based on sequential pattern \\
+              3.e Generated a testing suite (hw4\_test) based on finding primes from hw1, multiple worker count testing \\
+              4.a-e Helped with these problems, conceptual \\
+
+
+          \end{answer}
           \par
           You do not need to list course materials including anything on the
           \hrefc{https://www.students.cs.ubc.ca/~cs-418}{cs-418 website},
@@ -97,9 +119,7 @@ it on CS department linux machines.
                     Mark it clearly as your response to the \textbf{Extra Credit} part
                     of this question.
 
-                    \begin{answer}
-                        No collaborators
-                    \end{answer}
+
 
           \end{enumerate}
 
@@ -172,6 +192,38 @@ it on CS department linux machines.
                     \code{n} need to be to observe no errors when \code{ntrials==1000000}?  Exact values aren't
                     needed.  For example, if you double \code{n} until you get a value for which you see no
                     errors when \code{ntrials==1000000}, that's good enough.
+
+                    \begin{answer}
+                        I placed twiddle at dekker.c:43 so that the thread backs off after writing false to its own flag.
+                        This prevents the thread from immediately trying to acquire the lock again and allows more time for the false write to propegate to memory.
+
+
+                        \textbf{Error Rate Observations:}
+
+                        Testing Dekker's algorithm with different numbers of n for twiddle(n) (starting at 160 and doubling):
+
+                        \begin{center}
+                            \begin{tabular}{|c|c|}
+                                \hline
+                                \textbf{n} & \textbf{Errors Detected} \\
+                                \hline
+                                160        & 14                       \\
+                                \hline
+                                320        & 6                        \\
+                                \hline
+                                640        & 115                      \\
+                                \hline
+                                2560       & 45                       \\
+                                \hline
+                                5120       & 2                        \\
+                                \hline
+                                10240      & 0                        \\
+                                \hline
+                            \end{tabular}
+                        \end{center}
+
+                        At n = 10240, no errors were detected.
+                    \end{answer}
           \end{enumerate}
 
           Calling \code{twiddle} is not a very satisfactory solution.  We never know that we've
@@ -335,6 +387,76 @@ it on CS department linux machines.
                     Describe the memory accesses that are performed and the cache-line state transitions
                     (e.g.\ from \code{S} to \code{I} or vice-versa) when thread 1 releases the lock,
                     one of the other threads acquires the lock, and the other threads resume spinning.
+
+                    \begin{answer}
+                        \textbf{Phase 1: Thread 1 releases the lock}
+
+                        Thread 1 executes \code{\_\_atomic\_store\_n(data, 0)} to release:
+                        \begin{itemize}
+                            \item Thread 1 cache: $S \to M$ (needs exclusive access to write)
+                            \item Thread 1 sends BusInv to all other caches
+                            \item Threads 2-N caches: $S \to I$ (invalidated)
+                            \item Thread 1 writes 0 to cache line, propagates to memory
+                        \end{itemize}
+
+                        \textbf{Phase 2: Spinning threads detect lock is free}
+
+                        Threads 2-N are spinning in \code{while(\_\_atomic\_load\_n(data))}:
+                        \begin{itemize}
+                            \item All N-1 threads have cache line in $I$ state, must fetch from memory
+                            \item All issue memory reads (approximately) simultaneously
+                            \item Thread 1 cache: $M \to S$ (or $E$, responds to reads)
+                            \item Threads 2-N caches: $I \to S$ (all read value 0)
+                        \end{itemize}
+                        This requires O(N) memory reads.
+
+                        \textbf{Phase 3: One thread acquires the lock}
+
+                        All N-1 threads see lock is free and attempt \code{cmpxchgl}. Say thread 2 wins arbitration:
+                        \begin{itemize}
+                            \item Thread 2 executes \code{cmpxchgl} (read-with-intent-to-write)
+                            \item Thread 2 cache: $S \to L$ (locked during atomic operation)
+                            \item Thread 2 sends BusInv to all other caches
+                            \item Thread 1, threads 3-N caches: $S \to I$ (invalidated)
+                            \item Thread 2 compares (expected=0, actual=0), writes thread\_2\_id
+                            \item Thread 2 cache: $L \to M$
+                            \item \code{cmpxchgl} succeeds
+                        \end{itemize}
+
+                        \textbf{Phase 4: Other threads fail to acquire and resume spinning}
+
+                        Each of threads 3-N attempts \code{cmpxchgl}:
+                        \begin{itemize}
+                            \item Thread $k$ (for $k \in \{3,...,N\}$) executes \code{cmpxchgl}
+                            \item Thread $k$ cache: $I \to L$ (locked during read-with-intent-to-write)
+                            \item Thread $k$ must wait for thread 2's cache to finish (bus arbitration)
+                            \item Thread $k$ reads value (thread\_2\_id), compares with expected (0), fails
+                            \item Thread $k$ cache: $L \to E$ or $M$ (has exclusive copy momentarily)
+                            \item Each failed \code{cmpxchgl} sends BusInv, invalidating other spinning threads
+                            \item Thread $k$ returns to \code{while} loop, reads lock value again
+                            \item Thread $k$ cache: likely $I$ again after other threads' \code{cmpxchgl} attempts
+                        \end{itemize}
+
+                        After all failed attempts, threads resume spinning:
+                        \begin{itemize}
+                            \item Thread 2 cache: $M$ (holds lock)
+                            \item Threads 3-N must read from thread 2's cache or memory
+                            \item Threads 3-N caches: $I \to S$ (read non-zero value)
+                            \item Thread 2 cache: $M \to S$ (shared with spinning threads)
+                        \end{itemize}
+
+                        \textbf{Big-O Analysis:}
+
+                        The compare-and-exchange lock generates $\Theta(N^2)$ inter-cache and memory activity:
+                        \begin{itemize}
+                            \item Release: O(N) invalidations
+                            \item All threads read lock is free: O(N) memory reads
+                            \item Each of N-1 threads attempts \code{cmpxchgl}: each attempt causes O(N) invalidations
+                            \item Total: $O(N) + O(N) + O(N) \cdot O(N) = O(N^2)$ cache coherence traffic
+                        \end{itemize}
+
+                        This excessive traffic is why more sophisticated locking algorithms (e.g., queue-based locks, MCS locks) are preferred for high-contention scenarios.
+                    \end{answer}
           \end{enumerate}
           Hints: there are many details I could add about exactly how a cache handles read-with-intent to write, and so on.
           Here are some assumptions that I'll suggest to keep the problem simple:
@@ -558,6 +680,16 @@ it on CS department linux machines.
                     Describe the route from node \code{[1,0,1,1]} to node \code{[0,1,1,0]} in
                     the same style as the example above.
           \end{enumerate}
+
+          \begin{answer}
+              \begin{displaymath}\begin{array}{rcll}
+                      \code{[1,0,1,1]} & \rightarrow & \code{[0,0,1,1]} & \code{\xcomment{route on address bit 0}} \\
+                                       & \rightarrow & \code{[0,1,1,1]} & \code{\xcomment{route on address bit 1}} \\
+                                       & \rightarrow & \code{[0,1,1,1]} & \code{\xcomment{route on address bit 2}} \\
+                                       & \rightarrow & \code{[0,1,1,0]} & \code{\xcomment{route on address bit 3}}
+                  \end{array}\end{displaymath}
+          \end{answer}
+
           We say that there is congestion if two messages want to traverse the same link at the same step.
           For example, consider what happens when the two messages below are sent at the same time:
           \begin{description}
@@ -589,12 +721,56 @@ it on CS department linux machines.
                     \code{Src2$\,\rightarrow\,$Dst2} such that both routes can be performed at the
                     same time using dimension routing on a 4-dimensional hypercube without congestion.
                     Describe how the messages move at each step as in the example above.
+                    \begin{answer}
+                        \begin{description}
+                            \item{Message 1:}
+                                  the processor at node \code{[1,1,1,1]} sends a message to node \code{[1,1,1,0]};
+                            \item{Message 2:}
+                                  the processor at node \code{[0,0,0,0]} sends a message to node \code{[0,0,1,0]}.
+                        \end{description}
+                        \begin{displaymath}\begin{array}{rcl|rcl|l}
+                                \multicolumn{3}{c}{\color{CodeColor}\textrm{Message 1}} &
+                                \multicolumn{3}{c}{\color{MediumRed}\textrm{Message 2}} &
+                                \code{\xcomment{Remark}}                                                                                    \\\hline
+                                \code{[1,1,1,1]}                                        & \rightarrow & \code{[1,1,1,1]}                  &
+                                \code{\color{MediumRed}[0,0,0,0]}                       & \rightarrow & \code{\color{MediumRed}[0,0,0,0]} &
+                                \code{\xcomment{route on address bit 0}}                                                                    \\
+                                \code{[1,1,1,1]}                                        & \rightarrow & \code{[1,1,1,1]}                  &
+                                \code{\color{MediumRed}[0,0,0,0]}                       & \rightarrow & \code{\color{MediumRed}[0,0,0,0]} &
+                                \code{\xcomment{route on address bit 1}}                                                                    \\
+                                \code{[1,1,1,1]}                                        & \rightarrow & \code{[1,1,1,1]}                  &
+                                \code{\color{MediumRed}[0,0,0,0]}                       & \rightarrow & \code{\color{MediumRed}[0,0,1,0]} &
+                                \code{\xcomment{route on address bit 2}}                                                                    \\
+                                \code{[1,1,1,1]}                                        & \rightarrow & \code{[1,1,1,0]}                  &
+                                \code{\color{MediumRed}[0,0,0,0]}                       & \rightarrow & \code{\color{MediumRed}[0,0,1,0]} &
+                                \code{\xcomment{route on address bit 3}}
+                            \end{array}\end{displaymath}
+                    \end{answer}
               \item (\textbf{3 points})\setcounter{enumiisave}{\value{enumii}}
                     Give a pair of routes of the form \code{Src1$\,\rightarrow\,$Dst1} and
                     \code{Src2$\,\rightarrow\,$Dst2} such that congestion occurs when both routes are performed at the
                     same time using dimension routing on a 4-dimensional hypercube.
                     Describe how the messages move at each step as in the example above.
                     I gave such an example above.  To get credit, you must give a \emph{different} example.
+                    \begin{answer}
+                        \begin{description}
+                            \item{Message 1:}
+                                  the processor at node \code{[1,1,0,1]} sends a message to node \code{[0,0,1,0]};
+                            \item{Message 2:}
+                                  the processor at node \code{[0,1,0,1]} sends a message to node \code{[0,0,1,1]}.
+                        \end{description}
+                        \begin{displaymath}\begin{array}{rcl|rcl|l}
+                                \multicolumn{3}{c}{\color{CodeColor}\textrm{Message 1}} &
+                                \multicolumn{3}{c}{\color{MediumRed}\textrm{Message 2}} &
+                                \code{\xcomment{Remark}}                                                                                    \\\hline
+                                \code{[1,1,0,1]}                                        & \rightarrow & \code{[0,1,0,1]}                  &
+                                \code{\color{MediumRed}[0,1,0,1]}                       & \rightarrow & \code{\color{MediumRed}[0,1,0,1]} &
+                                \code{\xcomment{route on address bit 0}}                                                                    \\
+                                \code{[0,1,0,1]}                                        & \rightarrow & \code{[0,0,0,1]}                  &
+                                \code{\color{MediumRed}[0,1,0,1]}                       & \rightarrow & \code{\color{MediumRed}[0,0,0,1]} &
+                                \code{\xcomment{{\color{MediumRed}congestion} on address bit 1}}                                            \\
+                            \end{array}\end{displaymath}
+                    \end{answer}
           \end{enumerate}
 
           We want an example that causes severe congestion in the hypercube.
@@ -644,6 +820,32 @@ it on CS department linux machines.
                     \code{6}, \code{8}, and \code{10}.
                     Show from the date you reported that for these examples $\code{MaxCongestion} = \frac{1}{2}2^{D/2}$
                     and $\code{MaxCongestedLinks} = 2*2^{D/2}$.
+                    test
+                    \begin{answer}
+                        Running \code{hw4\_lib:congestion\_0(D)} for various values of D:
+
+                        \begin{center}
+                            \begin{tabular}{|c|c|c|c|c|}
+                                \hline
+                                \textbf{D} & \textbf{Reported}      & \textbf{Formula for}    & \textbf{Reported}          & \textbf{Formula for}       \\
+                                           & \textbf{MaxCongestion} & \textbf{MaxCongestion}  & \textbf{MaxCongestedLinks} & \textbf{MaxCongestedLinks} \\
+                                           &                        & $\frac{1}{2}2^{D/2}$    &                            & $2 \cdot 2^{D/2}$          \\
+                                \hline
+                                2          & 1                      & $\frac{1}{2}2^{1} = 1$  & 4                          & $2 \cdot 2^{1} = 4$        \\
+                                \hline
+                                4          & 2                      & $\frac{1}{2}2^{2} = 2$  & 8                          & $2 \cdot 2^{2} = 8$        \\
+                                \hline
+                                6          & 4                      & $\frac{1}{2}2^{3} = 4$  & 16                         & $2 \cdot 2^{3} = 16$       \\
+                                \hline
+                                8          & 8                      & $\frac{1}{2}2^{4} = 8$  & 32                         & $2 \cdot 2^{4} = 32$       \\
+                                \hline
+                                10         & 16                     & $\frac{1}{2}2^{5} = 16$ & 64                         & $2 \cdot 2^{5} = 64$       \\
+                                \hline
+                            \end{tabular}
+                        \end{center}
+
+                        As shown in the table, the reported values match the formulas exactly for all tested values of D.
+                    \end{answer}
               \item (\textbf{10 points})
                     \code{hw4\_lib:congestion\_0(D)} gets rather slow as \code{D} grows.
                     The function \code{\erllib:congestion(D)} is much faster, but you need to
@@ -660,6 +862,9 @@ it on CS department linux machines.
                         \item Testing your implementation of \code{hw4:link\_counts(SrcDstList)} should
                               be easy:  just check that \code{hw4\_lib:congestion(D) =:= hw4\_lib:congestion\_0(D)}.
                     \end{itemize}
+                    \begin{answer}
+                        Implemented hw4.erl:link\_counts/1
+                    \end{answer}
               \item (\textbf{5 points})
                     Identify any one of the 32 links that has conveys the \code{MaxCongestion} messages
                     for \code{hw4\_lib:congestion(8)} (or, equivalantly, for \code{hw4\_lib:congestion\_0(D)}).
@@ -674,12 +879,80 @@ it on CS department linux machines.
                               then you might want to try generating more examples for different values of \code{D}
                               or different maximally congested links.
                     \end{itemize}
+                    \begin{answer}
+                        Using the helper functions in \code{hw4.erl}:
+
+                        \texttt{hw4:find\_max\_congested\_links(8)} returns a map of all maximally congested links.
+                        Selecting one example link: \code{\{[0,0,0,0,0,0,0,0],4\}}.
+
+                        The eight \code{\tuple{Src, Dst}} pairs that use this link are found with \\
+                        \texttt{hw4:messages\_using\_link(\{[0,0,0,0,0,0,0,0],4\}, 8)}.\\
+                        // OUTPUT: \\
+                        \code{
+                            [\{[1,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0]\}, \\
+                                    \{[1,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,1]\}, \\
+                                    \{[1,0,1,0,0,0,0,0],[0,0,0,0,1,0,1,0]\}, \\
+                                    \{[1,0,1,1,0,0,0,0],[0,0,0,0,1,0,1,1]\}, \\
+                                    \{[1,1,0,0,0,0,0,0],[0,0,0,0,1,1,0,0]\}, \\
+                                    \{[1,1,0,1,0,0,0,0],[0,0,0,0,1,1,0,1]\}, \\
+                                    \{[1,1,1,0,0,0,0,0],[0,0,0,0,1,1,1,0]\}, \\
+                                    \{[1,1,1,1,0,0,0,0],[0,0,0,0,1,1,1,1]\}] \\
+                        }
+                    \end{answer}
               \item (\textbf{15 points}) Show that for a \code{D} dimensional hypercube there
                     is at least one link that conveys $\frac{1}{2}2^{D/2}$ messages when routing the
                     \code{hw4:traffic(D)} pattern.  This should be a mathematical argument that
                     works for any \code{D} that is a positive, even integer.
                     In other words, you should take your observations from the previous parts of this problem
                     and use them to formulate and justify a general result.
+
+                    \begin{answer}
+                        \textbf{Proof:}
+
+                        Consider the transpose traffic pattern on a $D$-dimensional hypercube where $D$ is even.
+                        Each node with address $\code{Addr} = \code{Left} ++ \code{Right}$ (where $|\code{Left}| = |\code{Right}| = D/2$)
+                        sends a message to its transpose $\code{Right} ++ \code{Left}$.
+
+                        \textbf{Key Observation:} Consider the link from node $[0,0,\ldots,0]$ (all zeros) along dimension $D/2$.
+
+                        \textbf{Which messages use this link?}
+
+                        A message from $\code{Src}$ to $\code{Dst}$ uses this link if and only if:
+                        \begin{enumerate}
+                            \item After routing along dimensions $0$ through $D/2-1$, the message reaches node $[0,0,\ldots,0]$
+                            \item The message needs to change bit $D/2$ (i.e., $\code{Src}[D/2] \neq \code{Dst}[D/2]$)
+                        \end{enumerate}
+
+                        \textbf{Pattern of sources:}
+
+                        For the transpose pattern, consider sources of the form:
+                        $$\code{Src} = [1, b_1, b_2, \ldots, b_{D/2-1}, 0, 0, \ldots, 0]$$
+                        where the first $D/2$ bits can vary (with first bit fixed to 1), and the last $D/2$ bits are all 0.
+
+                        The destination is:
+                        $$\code{Dst} = [0, 0, \ldots, 0, 1, b_1, b_2, \ldots, b_{D/2-1}]$$
+
+                        \textbf{Routing analysis:}
+                        \begin{itemize}
+                            \item Dimensions 0 through $D/2-1$: The message routes from $\code{Src}$ to match the first $D/2$ bits of $\code{Dst}$,
+                                  arriving at node $[0,0,\ldots,0,0,\ldots,0]$.
+                            \item Dimension $D/2$: The message must change from 0 to 1, using the link from $[0,0,\ldots,0]$ along dimension $D/2$.
+                        \end{itemize}
+
+                        \textbf{Counting messages:}
+
+                        How many such source nodes exist? The pattern $[1, b_1, \ldots, b_{D/2-1}, 0, \ldots, 0]$ has:
+                        \begin{itemize}
+                            \item First bit: fixed to 1 (to ensure dimension $D/2$ link is used)
+                            \item Next $D/2-1$ bits: can be anything ($2^{D/2-1}$ choices)
+                            \item Last $D/2$ bits: all 0
+                        \end{itemize}
+
+                        Total messages using this link: $2^{D/2-1} = \frac{1}{2} \cdot 2^{D/2}$.
+
+                        \textbf{Conclusion:} The link from node $[0,0,\ldots,0]$ along dimension $D/2$ conveys exactly
+                        $\frac{1}{2}2^{D/2}$ messages.
+                    \end{answer}
           \end{enumerate}
 
     \item Queues: (\textbf{36 points})\label{q:q}\\
@@ -779,6 +1052,33 @@ it on CS department linux machines.
                     queue lengths (medians).
                     Do the measurements seem reasonably close to the formula?
                     Feel free to include a plot in your solution if you think it adds to the clarity.
+
+                    \begin{answer}
+                        \textbf{Queue Length Simulation Results:}
+
+                        \begin{center}
+                            \begin{tabular}{|c|c|c|c|c|c|}
+                                \hline
+                                \textbf{$M_a$}                  & 3.0    & 2.0    & 1.5    & 1.1    & 1.05    \\
+                                \hline
+                                \textbf{Median (Simulated)}     & 0.4988 & 1.0013 & 2.0011 & 9.8975 & 21.1616 \\
+                                \hline
+                                \textbf{Formula: $1/(M_a - 1)$} & 0.5    & 1.0    & 2.0    & 10.0   & 20.0    \\
+                                \hline
+                            \end{tabular}
+                        \end{center}
+
+                        \textbf{Analysis:} The measurements are very close to the formula values. The simulated medians closely match the theoretical formula $\frac{1}{M_a - 1}$ for all tested values:
+                        \begin{itemize}
+                            \item For $M_a = 3.0$: simulated 0.4988 vs. formula 0.5 (0.24\% difference)
+                            \item For $M_a = 2.0$: simulated 1.0013 vs. formula 1.0 (0.13\% difference)
+                            \item For $M_a = 1.5$: simulated 2.0011 vs. formula 2.0 (0.06\% difference)
+                            \item For $M_a = 1.1$: simulated 9.8975 vs. formula 10.0 (1.03\% difference)
+                            \item For $M_a = 1.05$: simulated 21.1616 vs. formula 20.0 (5.81\% difference)
+                        \end{itemize}
+
+                        The agreement is excellent, especially for higher values of $M_a$. The slightly larger relative difference for $M_a = 1.05$ is expected as the queue becomes more sensitive to small fluctuations when operating closer to saturation ($M_a \approx 1$).
+                    \end{answer}
               \item \textbf{Impact of service time distribution.} (6 points)\\
                     Now consider\\
                     \rule{1.5em}{0ex}%
@@ -793,6 +1093,39 @@ it on CS department linux machines.
                     and tried experiments to test your hypotheses.  You are welcome to find references about
                     queues -- make sure you cite them.
 
+                    \begin{answer}
+                        \textbf{Service Time Distribution Impact Results:}
+
+                        With arrival rate fixed at $R_a = \text{expDist}(1.0)$, tested three different service time distributions:
+
+                        \begin{center}
+                            \begin{tabular}{|l|c|c|}
+                                \hline
+                                \textbf{Service Distribution $R_s$} & \textbf{Median Queue Length} & \textbf{Std Dev} \\
+                                \hline
+                                expDist(1.0) (M/M/1)                & 260.81                       & ~185-210         \\
+                                \hline
+                                constDist(1.0) (M/D/1)              & 187.20                       & ~137-149         \\
+                                \hline
+                                erlangDist(1.0, 5) (M/E$_5$/1)      & 189.58                       & ~121-161         \\
+                                \hline
+                            \end{tabular}
+                        \end{center}
+
+                        \textbf{Analysis and Observations:}
+                        \begin{itemize}
+                            \item \textbf{Impact of Service Variability:} The M/M/1 queue (exponential service) has the highest median queue length (260.81), while the M/D/1 queue (constant service) has the lowest (187.20). This demonstrates that reducing service time variability significantly reduces queue length.
+
+                            \item \textbf{Erlang Distribution:} The Erlang distribution with shape parameter 5 produces results (189.58) very close to the constant service time. This makes sense as Erlang$(k)$ approaches a constant distribution as $k$ increases - with $k=5$ already showing much less variability than exponential.
+
+                            \item \textbf{Variance Effect:} All three distributions have the same mean service time (1.0), but different variances. Exponential has the highest variance (CV=1), constant has zero variance (CV=0), and Erlang$(5)$ has intermediate variance (CV=$1/\sqrt{5} \approx 0.45$). Lower variance leads to shorter queues.
+
+                            \item \textbf{Standard Deviations:} The standard deviations are very large relative to the means (50-80\% of mean), indicating high variability in queue lengths even within a single configuration, which is characteristic of queues operating near saturation ($\rho = 1$).
+
+                            \item \textbf{Practical Implications:} This shows that even when average service times are equal, predictability in service time significantly improves queue performance - a reduction of about 28\% in queue length from M/M/1 to M/D/1.
+                        \end{itemize}
+                    \end{answer}
+
               \item \textbf{Make it parallel: \code{par\_len}.} (10 points)\\
                     Write \code{hw4:par\_len/5} which is a parallel version of \code{\erllib:sim\_len/4}.
                     and \code{\erllib:sim\_len\_ms/4}.
@@ -802,12 +1135,20 @@ it on CS department linux machines.
                     The function \code{stat:combine/2} can make your life easier from the course library --
                     see the \hrefc{https://www.students.cs.ubc.ca/~cs-418/resources/erl/doc/index.html}{docs}.
 
+                    \begin{answer}
+                        implemented in \code{hw4.erl} lines 219-230
+                    \end{answer}
+
               \item \code{par\_len\_ms} (4 points)\\
                     The function \code{\erllib:sim\_len\_ms/4} calls \code{\erllib:sim\_len/4}
                     and then uses the functions \code{stat:mean/1} and \code{stat:std/1} from
                     the course library to compute the mean and standard deviation.
                     You are encouraged to look at the code in \code{\erllib.erl} and use that as a template
-                    for your \code{par\_len\_ms}.
+                    for your \code{par\_len\_ms} (implemented in \code{hw4.erl} ).
+
+                    \begin{answer}
+                        implemented in \code{hw4.erl} lines lines 232-237
+                    \end{answer}
 
               \item \textbf{Measure Speed-Up} (10 points)\\
                     Measure the speed-up for your implementation of \code{par\_len\_ms}.
@@ -815,6 +1156,10 @@ it on CS department linux machines.
                     This time, you decide how to make your measurments.
                     Please describe how you measured the speed-ups, and give your reasons for your
                     design choices.
+
+                    \begin{answer}
+                        \input{speedup_section}
+                    \end{answer}
           \end{enumerate}
           \textbf{Hint:} This problem is a simple example of reduce.
           My \code{par\_len} function is eight lines long,
@@ -894,9 +1239,17 @@ it on CS department linux machines.
                     $1 \leq i \leq n$, and $1 \leq j \leq n$.
                     If you want a working example, try filling in the tableau where $s_1$ is \code{"length"} and
                     $s_2$ is \code{"slings"}.
+
+                    \begin{answer}
+                        $T_1 = \Theta(n^2)$. We fill an $n \times n$ tableau, with each cell $T(i,j)$ requiring $O(1)$ work to compute the minimum of three values.
+                    \end{answer}
               \item (\textbf{5 points})\\
                     \label{q:dynamic.span} What is the \emph{Span} in the work-span model when $s_1$ and $s_2$ are both of
                     length $n$?
+
+                    \begin{answer}
+                        $T_\infty = \Theta(2n)$. Using diagonal parallelism, cells where $i+j=k$ can be computed in parallel. The diagonals range from $k=2$ to $k=2n$, requiring $2n-1 \approx 2n$ sequential steps.
+                    \end{answer}
               \item (\textbf{5 points})\\
                     Let $\speedup(n, p)$ denote the \emph{optimal} speed-up according to work-span when using $p$ processors
                     and $s_1$ and $s_2$ are of length.
@@ -904,6 +1257,10 @@ it on CS department linux machines.
                     definition of Brent's lemma using $T_1$, $T_{\infty}$, and $p$, but that's not a complete answer.
                     Use your formulas for $T_1$ and $T_{\infty}$ from questions~\ref{q:dynamic.work} and~\ref{q:dynamic.span}
                     and then simplify your formula.
+
+                    \begin{answer}
+                        Brent's Lemma: $T_p \geq \max(T_1/p, T_\infty)$. With $T_1 = n^2$ and $T_\infty = 2n$, we get $T_p \geq \max(n^2/p, 2n)$. Therefore, speedup $S(n,p) = T_1/T_p \leq n^2/\max(n^2/p, 2n) = \min(p, n^2/(2n)) = \min(p, n/2)$.
+                    \end{answer}
               \item (\textbf{5 points})\\
                     Derive the actual value of $\speedup(n, p)?$.  In other words, what is the minimum number of time-steps
                     to perform dynamic programming with $p$ processors on inputs of length $n$ assuming zero communication costs.
@@ -914,16 +1271,28 @@ it on CS department linux machines.
                     Feel free to simplify your formulas by ignoring $+1$ and $-1$ additive constants.
                     Clearly state when you make such approximations -- using a $\approx$ instead of $=$
                     is one qay to ``clearly state\ldots''.
+
+                    \begin{answer}
+                        With $p$ processors and diagonal parallelism, time per diagonal is $\lceil \text{diagonal\_size}/p \rceil$. The optimal parallel time $T_p \approx \max(n^2/p, 2n)$, giving speedup $S(n,p) \approx n^2/\max(n^2/p, 2n) = \min(p, n/2)$. This matches Brent's bound for this algorithm because the diagonal structure allows perfect load balancing.
+                    \end{answer}
               \item (\textbf{5 points})\\
                     Show that $\speedup(n, \infty)$ can be achieved with fewer than $\infty$ processors.
                     Give a formula the smallest number of processors that can be used to achieve $\speedup(n, \infty)$ as a function of $n$.
                     We will write $p_{\max}(n)$ to denote this number of processors.
                     Thus, $\speedup(n, p_{\max}(n)) = \speedup(n, \infty)$.
+
+                    \begin{answer}
+                        $S(n, \infty) = n/2$ from the span bound. This is achieved when $T_p = T_\infty = 2n$. Since the largest diagonal has $n$ cells, once we have $p \geq n$ processors, we can process any diagonal in one step. Therefore, $p_{\max}(n) = n$.
+                    \end{answer}
               \item (\textbf{5 points})\\
                     Let $E(n)$ denote the parallel efficiency when $p = p_{\max}(n)$.
                     What is $\lim_{n \rightarrow \infty} E(n)$.
                     Explain why the efficiency you calculated above is less than one.
                     Refer to the causes of performance loss that we described in class.
+
+                    \begin{answer}
+                        $E(n) = S(n, p_{\max}(n))/p_{\max}(n) = (n/2)/n = 1/2 = 50\%$. Therefore, $\lim_{n \to \infty} E(n) = 1/2$. The efficiency is less than one due to \textbf{load imbalance}: not all diagonals have $n$ cells. Diagonals near the corners have few cells, leaving many processors idle. Only the middle diagonals fully utilize all $n$ processors.
+                    \end{answer}
           \end{enumerate}
 \end{enumerate}
 

@@ -1,7 +1,7 @@
 -module(hw4_lib).
 
 % functions for Q2: Hypercube Congestion
--export([congestion_0/1, congestion/1, route1/3, msg_count/3, all_nodes/1, transpose/1]).
+-export([congestion_0/1, congestion/1, route1/3, msg_count/3, all_nodes/1, transpose/1, traffic/1]).
 
 % functions for Q3: Queues
 -export([create/4, create/2, m_get/2, m_put/3, step/1, run/2]).
@@ -22,7 +22,6 @@
 %                                                                              %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 % route1(Src, Dst, K) -> {Before, After}
 %   Perform a single step in dimenstion routing on a hypercube.
 %   Parameters:
@@ -38,14 +37,18 @@
 %       before routing along dimension K.
 %     After is the node that the message being sent from Src to Dst is at
 %       after routing along dimension K.
-route1(Src, Dst, K)
-    when is_list(Src), is_list(Dst), length(Src) == length(Dst),
-	 is_integer(K), 0 =< K, K < length(Src) ->
-  D = length(Src),
-  Before = lists:sublist(Dst, K) ++ lists:sublist(Src, K+1, D-K),
-  After  = lists:sublist(Dst, K+1) ++ lists:sublist(Src, K+2, D-(K+1)),
-  { Before, After }.
-
+route1(Src, Dst, K) when
+    is_list(Src),
+    is_list(Dst),
+    length(Src) == length(Dst),
+    is_integer(K),
+    0 =< K,
+    K < length(Src)
+->
+    D = length(Src),
+    Before = lists:sublist(Dst, K) ++ lists:sublist(Src, K + 1, D - K),
+    After = lists:sublist(Dst, K + 1) ++ lists:sublist(Src, K + 2, D - (K + 1)),
+    {Before, After}.
 
 % msg_count(Node, Link, SrcDstList) -> Count
 %   Parameters:
@@ -57,20 +60,21 @@ route1(Src, Dst, K)
 %     How many messages are sent from Node along Link when
 %     sending messages from each Src to the corresponding Dst.
 msg_count(Node, Link, [{Src, Dst} | Tl]) ->
-  {Before, After} = route1(Src, Dst, Link),
-  case (Before == Node) andalso (Before /= After) of
-    true -> 1;
-    false -> 0
-  end + msg_count(Node, Link, Tl);
-msg_count(_, _, []) -> 0.
-
+    {Before, After} = route1(Src, Dst, Link),
+    case (Before == Node) andalso (Before /= After) of
+        true -> 1;
+        false -> 0
+    end + msg_count(Node, Link, Tl);
+msg_count(_, _, []) ->
+    0.
 
 % all_nodes(D) -> ListOfNodeAddresses
 %   Return a list the node addresses for all nodes of a D-dimensional hypercube.
 all_nodes(D) when is_integer(D), D > 0 ->
-  A = all_nodes(D-1),
-  [[0 | X] || X <- A] ++ [[1 | X] || X <- A];
-all_nodes(0) -> [[]].
+    A = all_nodes(D - 1),
+    [[0 | X] || X <- A] ++ [[1 | X] || X <- A];
+all_nodes(0) ->
+    [[]].
 
 % transpose(Addr)
 %   Swap the left and right halves of an address.
@@ -79,15 +83,15 @@ all_nodes(0) -> [[]].
 %   D div 2 such that Left ++ Right == Addr.
 %   Return the node address Right ++ Left.
 transpose(Addr) when is_list(Addr) ->
-  {A, B} = lists:split(length(Addr) div 2, Addr),
-  B ++ A.
+    {A, B} = lists:split(length(Addr) div 2, Addr),
+    B ++ A.
 
 % traffic(D) -> SrcDstList
 %   Return the SrcDstList for a D-dimensional hypercube where each node sends
 %   a message to its transpose.
 traffic(D) when is_integer(D), 0 =< D ->
-  Nodes = all_nodes(D),
-  lists:zip(Nodes, [transpose(Node) || Node <- Nodes]).
+    Nodes = all_nodes(D),
+    lists:zip(Nodes, [transpose(Node) || Node <- Nodes]).
 
 % congestion_0(D) -> {MaxCongestion, MaxCongestedLinks}.
 %   Let SrcDstList be the traffic pattern consisting of all pairs {Src, Dst},  %
@@ -109,12 +113,14 @@ traffic(D) when is_integer(D), 0 =< D ->
 %   calls to route1 -- route1 simulates one step of dimension routing.         %
 %   route1 runs in Theta(D) time.  Thus the total time is D^2 N^2.             %
 congestion_0(D) ->
-  Nodes = all_nodes(D),
-  SrcDstList = traffic(D),
-  V = [    msg_count(Node, Link, SrcDstList)
-	|| Node <- Nodes, Link <- lists:seq(0, D-1) ],
-  MaxCount = lists:max(V),
-  { MaxCount, length([ok || Count <- V, Count == MaxCount])}.
+    Nodes = all_nodes(D),
+    SrcDstList = traffic(D),
+    V = [
+        msg_count(Node, Link, SrcDstList)
+     || Node <- Nodes, Link <- lists:seq(0, D - 1)
+    ],
+    MaxCount = lists:max(V),
+    {MaxCount, length([ok || Count <- V, Count == MaxCount])}.
 
 % congestion(D) -> {MaxCongestion, MaxCongestedLinks}.
 %   congestion(D) computes the same result as congestion_0(D) as described     %
@@ -127,12 +133,10 @@ congestion_0(D) ->
 %   is "fast enough" and we won't add the extra design issue of doing bit      %
 %   fiddling.                                                                  %
 congestion(D) ->
-  SrcDstList = traffic(D),
-  V = maps:values(link_counts(SrcDstList)),
-  MaxCount = lists:max(V),
-  { MaxCount, length([ok || Count <- V, Count == MaxCount]) }.
-
-
+    SrcDstList = traffic(D),
+    V = maps:values(link_counts(SrcDstList)),
+    MaxCount = lists:max(V),
+    {MaxCount, length([ok || Count <- V, Count == MaxCount])}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                      %
@@ -178,79 +182,105 @@ congestion(D) ->
 %       customers, which means we can't demonstrate some fun properties of Queues,
 %       but that will have to wait for another term.
 
-
 %   create(R_a, R_s, F, D): create an empty queue.
 create(R_a, R_s, CallBackFun, CallBackData) ->
-  FirstArrival = R_a(),
-  FirstService = FirstArrival + R_s(),
-  #{ len => 0,  % the queue is initially empty
-     t_a => FirstArrival,
-     t_s => FirstService,
-     r_a => R_a, % (random) time between arrivals
-     r_s => R_s, % (random) time to service a customer
-     callback_fun  => CallBackFun,     % customization: call-back function for each arrival and departure
-     callback_data => CallBackData      % data maintained by F.
-   }.
+    FirstArrival = R_a(),
+    FirstService = FirstArrival + R_s(),
+    % the queue is initially empty
+    #{
+        len => 0,
+        t_a => FirstArrival,
+        t_s => FirstService,
+        % (random) time between arrivals
+        r_a => R_a,
+        % (random) time to service a customer
+        r_s => R_s,
+        % customization: call-back function for each arrival and departure
+        callback_fun => CallBackFun,
+        % data maintained by F.
+        callback_data => CallBackData
+    }.
 
 % default: no call-back customizations
 create(R_a, R_s) -> create(R_a, R_s, none, none).
 
 % simulate N steps of the Q where each step corresponds to an arrival
 % or service event.
-run(0, Q) -> Q;
+run(0, Q) ->
+    Q;
 run(N, Q) when is_integer(N), 0 < N ->
-  run(N-1, step(Q)).
+    run(N - 1, step(Q)).
 
 % Process an arrival or service event -- whichever is next in time-order.
 step(Q) ->
-  [T_a, T_s] = m_get([t_a, t_s], Q),
-  if T_a =< T_s -> arrive(Q);
-     T_a > T_s  -> service(Q)
-  end.
+    [T_a, T_s] = m_get([t_a, t_s], Q),
+    if
+        T_a =< T_s -> arrive(Q);
+        T_a > T_s -> service(Q)
+    end.
 
 % Process an arrival event
 arrive(Q) when is_map(Q) ->
-  [T_a, T_s, R_a, R_s, Len, CBfun, CBdata] =
-    m_get([t_a, t_s, r_a, r_s, len, callback_fun, callback_data], Q),
-  Next_T_a = T_a + R_a(),
-  Next_T_s = case Len of
-	       0 -> T_a + R_s();
-	       _ -> T_s
-	     end,
-  Q#{t_a => Next_T_a,
-     t_s => Next_T_s,
-     len =>  Len+1,
-     callback_data =>
-       if is_function(CBfun, 2) -> CBfun(Q, a);
-	  CBfun == none -> CBdata;
-	  true -> error(
-		    { bad_fun,
-		      lists:flatten(
-			io_lib:format(
-			  "~w:arrive(...): bad call-back function, ~p~n",
-			  [?MODULE, CBfun]))})
-	  end}.
+    [T_a, T_s, R_a, R_s, Len, CBfun, CBdata] =
+        m_get([t_a, t_s, r_a, r_s, len, callback_fun, callback_data], Q),
+    Next_T_a = T_a + R_a(),
+    Next_T_s =
+        case Len of
+            0 -> T_a + R_s();
+            _ -> T_s
+        end,
+    Q#{
+        t_a => Next_T_a,
+        t_s => Next_T_s,
+        len => Len + 1,
+        callback_data =>
+            if
+                is_function(CBfun, 2) ->
+                    CBfun(Q, a);
+                CBfun == none ->
+                    CBdata;
+                true ->
+                    error(
+                        {bad_fun,
+                            lists:flatten(
+                                io_lib:format(
+                                    "~w:arrive(...): bad call-back function, ~p~n",
+                                    [?MODULE, CBfun]
+                                )
+                            )}
+                    )
+            end
+    }.
 
 % Process a service event
 service(Q) when is_map(Q) ->
-  [T_s, R_s, Len, CBfun, CBdata] =
-    m_get([t_s, r_s, len, callback_fun, callback_data], Q),
-  Next_T_s = case Len of
-	       1 -> undefined;
-	       _ -> T_s + R_s()
-	     end,
-  Q#{t_s => Next_T_s,
-     len => Len-1,
-     callback_data =>
-       if is_function(CBfun, 2) -> CBfun(Q, s);
-	  CBfun == none -> CBdata;
-	  true -> error(
-		    { bad_fun,
-		      lists:flatten(
-			io_lib:format(
-			  "~w:service(...): bad call-back function, ~p~n",
-			  [?MODULE, CBfun]))})
-       end
+    [T_s, R_s, Len, CBfun, CBdata] =
+        m_get([t_s, r_s, len, callback_fun, callback_data], Q),
+    Next_T_s =
+        case Len of
+            1 -> undefined;
+            _ -> T_s + R_s()
+        end,
+    Q#{
+        t_s => Next_T_s,
+        len => Len - 1,
+        callback_data =>
+            if
+                is_function(CBfun, 2) ->
+                    CBfun(Q, s);
+                CBfun == none ->
+                    CBdata;
+                true ->
+                    error(
+                        {bad_fun,
+                            lists:flatten(
+                                io_lib:format(
+                                    "~w:service(...): bad call-back function, ~p~n",
+                                    [?MODULE, CBfun]
+                                )
+                            )}
+                    )
+            end
     }.
 
 % sim(N_warmup, N_run, R_a, R_s, F)
@@ -268,14 +298,14 @@ service(Q) when is_map(Q) ->
 %   Return value:
 %     The Q-map reached at the end of the simulation.
 sim(N_warmup, N_run, R_a, R_s, F) ->
-  Q0 = create(R_a, R_s),
-  Q1 = run(N_warmup, Q0),
-  Q2 = if F == none -> Q1;
-	  is_function(F, 1) -> F(Q1)
-       end,
-  run(N_run, Q2).
-
-
+    Q0 = create(R_a, R_s),
+    Q1 = run(N_warmup, Q0),
+    Q2 =
+        if
+            F == none -> Q1;
+            is_function(F, 1) -> F(Q1)
+        end,
+    run(N_run, Q2).
 
 % Some random distributions to use for experimenting with queues.
 %   Every distribution should return samples that are positive numbers --
@@ -297,55 +327,58 @@ sim(N_warmup, N_run, R_a, R_s, F) ->
 %     cdf(x) = 0, x < 0
 %     cdf(x) = 1 - exp(-x/Mean), x >= 0
 expDist(Mean) when is_number(Mean), 0 < Mean ->
-  fun() -> -Mean*math:log(1 - rand:uniform()) end.
+    fun() -> -Mean * math:log(1 - rand:uniform()) end.
 
 expDist() -> expDist(1).
-
 
 % constDist(Mean):
 %   A constant distribution.  Every sample is Mean.
 constDist(Mean) -> fun() when is_number(Mean), 0 < Mean -> Mean end.
 
-
 % uniformDist(Mean, Width):
 %   uniform distribution in [Mean-(Width/2), Mean+Width/2]
-uniformDist(Mean, Width)
-    when is_number(Mean), 0 < Mean, is_number(Width), 0 =< Width, Width =< 2*Mean ->
-  Mean + Width*(0.5-rand:uniform()).
-
+uniformDist(Mean, Width) when
+    is_number(Mean), 0 < Mean, is_number(Width), 0 =< Width, Width =< 2 * Mean
+->
+    Mean + Width * (0.5 - rand:uniform()).
 
 % erlangDist(Mean, K):
 %   The Erlang-K distribution with mean=Mean.
 %   Of course, we need an Erlang distribution in this class!
 erlangDist(Mean, K) when is_number(Mean), 0 < Mean, is_integer(K), 0 < K ->
-  ExpDist = expDist(Mean/K),
-  fun() ->
-    lists:sum([ ExpDist() || _ <- lists:seq(1,K)])
-  end.
-
+    ExpDist = expDist(Mean / K),
+    fun() ->
+        lists:sum([ExpDist() || _ <- lists:seq(1, K)])
+    end.
 
 % simulate a queue and gather statistics on the queue length
 qlen(Q) ->
-  m_put([callback_fun, callback_data],
-	[ fun qlen_update/2,
-	  #{ t0 => m_get(t_now, Q),
-	     t_last => m_get(t_now, Q),
-	     sum_len => 0 }],
-	Q).
+    m_put(
+        [callback_fun, callback_data],
+        [
+            fun qlen_update/2,
+            #{
+                t0 => m_get(t_now, Q),
+                t_last => m_get(t_now, Q),
+                sum_len => 0
+            }
+        ],
+        Q
+    ).
 
 qlen_update(Q, _) ->
-  [T_now, Len, D] = m_get([t_now, len, callback_data], Q),
-  [SumLen, T_last] = m_get([sum_len, t_last], D),
-  D#{t_last => T_now,
-     sum_len => SumLen + Len * (T_now - T_last)}.
-
+    [T_now, Len, D] = m_get([t_now, len, callback_data], Q),
+    [SumLen, T_last] = m_get([sum_len, t_last], D),
+    D#{
+        t_last => T_now,
+        sum_len => SumLen + Len * (T_now - T_last)
+    }.
 
 qlen_mean(Q) ->
-  D = m_get(callback_data, Q),
-  [SumLen, T_0, T_last] = m_get([sum_len, t0, t_last], D),
-  m_get([sum_len, t0, t_last], D),
-  SumLen / (T_last - T_0).
-
+    D = m_get(callback_data, Q),
+    [SumLen, T_0, T_last] = m_get([sum_len, t0, t_last], D),
+    m_get([sum_len, t0, t_last], D),
+    SumLen / (T_last - T_0).
 
 % sim_len:
 %   Use sim to estimate the average length of a queue.
@@ -358,7 +391,7 @@ qlen_mean(Q) ->
 %   Result:
 %     The average queue-length during the N_run steps.
 sim_len(N_warmup, N_run, R_a, R_s) ->
-  qlen_mean(sim(N_warmup, N_run, R_a, R_s, fun qlen/1)).
+    qlen_mean(sim(N_warmup, N_run, R_a, R_s, fun qlen/1)).
 
 % sim_len(N_trials, N_warmup, N_run, R_a, R_s)
 %   Like sim_len(N_warmup, N_run, R_a, R_s,
@@ -367,18 +400,20 @@ sim_len(N_warmup, N_run, R_a, R_s) ->
 %     https://www.students.cs.ubc.ca/~cs-418/resources/erl/doc/index.html.
 %   To get the mean and standard-deviation, see sim_len_ms/5 below.
 sim_len(N_trials, N_warmup, N_run, R_a, R_s) ->
-  stat:accum(
-    [    sim_len(N_warmup, N_run, R_a, R_s)
-      || _ <- lists:seq(1, N_trials) ]).
+    stat:accum(
+        [
+            sim_len(N_warmup, N_run, R_a, R_s)
+         || _ <- lists:seq(1, N_trials)
+        ]
+    ).
 
 % sim_len_ms(N_trials, N_warmup, N_run, R_a, R_s)
 %   sim_len_ms(N_trials, N_warmup, N_run, R_a, R_s), but we return a keylist
 %   with our estimates (based on the simulations) of the mean and standard
 %   deviation of the queue length.
 sim_len_ms(N_trials, N_warmup, N_run, R_a, R_s) ->
-  S = sim_len(N_trials, N_warmup, N_run, R_a, R_s),
-  [ {mean, stat:mean(S)}, {std, stat:std(S)} ].
-
+    S = sim_len(N_trials, N_warmup, N_run, R_a, R_s),
+    [{mean, stat:mean(S)}, {std, stat:std(S)}].
 
 % map utilities
 
@@ -391,34 +426,41 @@ sim_len_ms(N_trials, N_warmup, N_run, R_a, R_s) ->
 m_get(t_now, M) when is_map(M) -> lists:min(m_get([t_a, t_s], M));
 m_get(Key, M) when is_atom(Key), is_map(M) -> maps:get(Key, M);
 m_get(KeyList, M) when is_list(KeyList), is_map(M) ->
-  [ m_get(X, M) || X <- KeyList ].
+    [m_get(X, M) || X <- KeyList].
 
 % m_put(KeyList, ValList, Map) -> UpdatedMap
 %   The counterpart of m_get for updating a map.
 %   KeyList must be a (deep) list of atoms.
 %   ValList is a (deep) list of values.  ValList must have the same shape as KeyList
 m_put(Key, Val, M) when is_atom(Key), is_map(M) ->
-  maps:put(Key, Val, M);
+    maps:put(Key, Val, M);
 m_put(KeyList, ValList, M) when is_list(KeyList), is_list(ValList), is_map(M) ->
-  lists:foldl(fun({K,V}, X) -> m_put(K, V, X) end, M, lists:zip(KeyList, ValList)).
-
+    lists:foldl(fun({K, V}, X) -> m_put(K, V, X) end, M, lists:zip(KeyList, ValList)).
 
 % you_need_to_write_this(Fun, Args)
 %   The usual place holder that will print an error message and then throw an
 %   error if you haven't implemented something requested in the homework.
 you_need_to_write_this(Fun, Args, FileName, LineNumber) ->
-    io:format("~s (line ~b): missing implementation for ~w~s.~n",
-	      [FileName, LineNumber, Fun, args_string(Args)]),
+    io:format(
+        "~s (line ~b): missing implementation for ~w~s.~n",
+        [FileName, LineNumber, Fun, args_string(Args)]
+    ),
     % The Erlang shell will report the exception as being thrown on the next line.
     % It won't show the call to you_need_to_write_this in the stack trace because
     % calling you_need_to_write_this(...) is usually a tail-call.  Do not fear.
     % The error message printed on the previous line tells you where the call
     % to you_need_to_write_this(...) was made.  You need to fix your code there.
     % You don't need to change this function.
-    error(missing_implementation).  % See the comment on the previous six lines.
 
-args_string([]) -> "()";
+    % See the comment on the previous six lines.
+    error(missing_implementation).
+
+args_string([]) ->
+    "()";
 args_string([Arg1 | Args]) ->
-  [ "(", io_lib:format("~p", [Arg1]),
-    [ io_lib:format(", ~p", [Arg]) || Arg <- Args],
-    ")"].
+    [
+        "(",
+        io_lib:format("~p", [Arg1]),
+        [io_lib:format(", ~p", [Arg]) || Arg <- Args],
+        ")"
+    ].

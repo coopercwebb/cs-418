@@ -1,20 +1,28 @@
 -module(hw4).
 
--export([link_counts/1]).  % the function you need to for Q2: Hypercube conjestion.
--export([par_len/6, par_len_ms/6]).  % the functions you need to write for Q3: queues.
+% the function you need to for Q2: Hypercube conjestion.
+-export([link_counts/1]).
+% the functions you need to write for Q3: queues.
+-export([par_len/6, par_len_ms/6]).
 
 % I added various
--import(hw4_lib,
-  [ sim_len/4,    % simulate a queue and return summary as an accumulator from the stat module.
-    sim_len_ms/4, % same as sim_len/4 but return a keylist with the mean and std (standard deviation).
-    you_need_to_write_this/4 % The usual error function that gets called if
-                             % you haven't written something required for the
-			     % assignment.
-  ]).
+-import(
+    hw4_lib,
+    % simulate a queue and return summary as an accumulator from the stat module.
+    [
+        sim_len/4,
+        % same as sim_len/4 but return a keylist with the mean and std (standard deviation).
+        sim_len_ms/4,
+        % The usual error function that gets called if
+        you_need_to_write_this/4
+        % you haven't written something required for the
+        % assignment.
+    ]
+).
 
 -define(you_need_to_write_this(Func, Args),
-	you_need_to_write_this(Func, Args, ?FILE, ?LINE)).
-
+    you_need_to_write_this(Func, Args, ?FILE, ?LINE)
+).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                              %
@@ -29,7 +37,7 @@
 %     We use little-endian order.  The first element of a node address         %
 %     is the least-significant bit of the address.  Say that the least         %
 %     significant bit of an address is bit 0.  Sadly, Erlang uses 1-based      %
-%     indexing; so, bit-K of an address is list:nth(K+1, Address).             % 
+%     indexing; so, bit-K of an address is list:nth(K+1, Address).             %
 %   Traffic Pattern: a list of {Src, Dst} pairs where Src and Dst are          %
 %     node addresses.  This means a message is sent from node Src to           %
 %     node Dst.                                                                %
@@ -49,12 +57,12 @@
 %                                                                              %
 % The homework asks you to show that the 'transpose' pattern for a hypercube   %
 % with 2^D nodes has some links that convey (1/2)*2^(D/2) messages each        %
-% time the traffic pattern is sent.  The code in this module lets you          % 
+% time the traffic pattern is sent.  The code in this module lets you          %
 % experimentally test this claim.  In particular, the function                 %
 %   congestion_0(D) -> {MaxCongestion, CongestedLinks}                         %
 % where MaxCongestion is the maximum number of messages conveyed by any link   %
 % when routing the transpose pattern, and CongestedLinks is the number of      %
-% links with this level of congestion.                                         % 
+% links with this level of congestion.                                         %
 %                                                                              %
 %   As implemented, congestion_0(Dim) is embarrassingly slow.  Let N = 2^D be  %
 % the number of nodes in a D-dimensional hypercube.  congestion_0 runs in time %
@@ -70,7 +78,6 @@
 % try.                                                                         %
 %                                                                              %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 % link_counts(SrcDstList) -> CountMap                                          %
 %   Count the number of messages sent over each link of a hypercube when       %
@@ -116,9 +123,71 @@
 %     memory footprint; so reasonable implementations that are body-recursive  %
 %     or use foldl are also acceptable.
 link_counts(SrcDstList) ->
-  ?you_need_to_write_this(link_counts, [SrcDstList]).
+    Map = maps:new(),
+    link_counts_h(SrcDstList, Map).
 
+link_counts_h([], Map) ->
+    Map;
+link_counts_h([{Src, Dst} | T], Map) ->
+    NewMap = route_and_count(Src, Dst, Map),
+    link_counts_h(T, NewMap).
 
+% Sonnet 4.5 generated below
+route_and_count(Src, Dst, Map) ->
+    D = length(Src),
+    route_and_count_dims(Src, Dst, 0, D, Map).
+
+route_and_count_dims(_Src, _Dst, K, D, Map) when K >= D ->
+    Map;
+route_and_count_dims(Src, Dst, K, D, Map) ->
+    {Before, After} = hw4_lib:route1(Src, Dst, K),
+    NewMap =
+        if
+            Before =/= After ->
+                OldCount = maps:get({Before, K}, Map, 0),
+                maps:put({Before, K}, OldCount + 1, Map);
+            true ->
+                Map
+        end,
+    route_and_count_dims(Src, Dst, K + 1, D, NewMap).
+
+% NOTE BELOW REQUIRES THE EXPORT OF HW4_LIB:traffic, THIS IS WHY IT IS COMMENTED
+% Sonnet 4.5 generated below
+
+% % find_max_congested_links(D) -> Map of maximally congested links
+% %   For a D-dimensional hypercube using the transpose traffic pattern,
+% %   find all links that have the maximum congestion level.
+% %   Parameters:
+% %     D: dimension of the hypercube
+% %   Return value:
+% %     A map containing only the links with MaxCongestion messages,
+% %     where each key is {NodeAddress, K} and value is the message count.
+% find_max_congested_links(D) ->
+%     SrcDstList = hw4_lib:traffic(D),
+%     CountMap = link_counts(SrcDstList),
+%     {MaxCongestion, _} = hw4_lib:congestion(D),
+%     % Filter map to only include links with MaxCongestion
+%     maps:filter(fun(_, Count) -> Count == MaxCongestion end, CountMap).
+
+% % messages_using_link(Link, D) -> List of {Src, Dst} pairs
+% %   Find all messages that use a specific link.
+% %   Parameters:
+% %     Link: {NodeAddress, K} identifying the link
+% %     D: dimension of the hypercube
+% %   Return value:
+% %     List of {Src, Dst} pairs that traverse this link
+% messages_using_link(Link) ->
+%     D = length(Link),
+%     {NodeAddress, K} = Link,
+%     SrcDstList = hw4_lib:traffic(D),
+%     % Filter messages that use this link
+%     lists:filter(
+%         fun({Src, Dst}) ->
+%             {Before, After} = hw4_lib:route1(Src, Dst, K),
+%             (Before == NodeAddress) andalso (Before =/= After)
+%         end,
+%         SrcDstList
+%     ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                              %
@@ -126,7 +195,6 @@ link_counts(SrcDstList) ->
 %                                                                              %
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 % par_len(W, N_trials, N_run, N_warmup, R_a, R_s) %   simulate a queue
 %   Parameters: %     W:  a worker tree from wtree:create/1
@@ -144,8 +212,37 @@ link_counts(SrcDstList) ->
 %   This should be a parallel implementation using wtree:reduce to obtain better
 %   performance than hw4_lib:sim_len.
 par_len(W, N_trials, N_warmup, N_run, R_a, R_s) ->
-  ?you_need_to_write_this(par_len, [W, N_trials, N_run, N_warmup, R_a, R_s]).
+    % Distribute trials across workers based on worker index
+    NWorkers = wtree:nworkers(W),
+    TrialsPerWorker = N_trials div NWorkers,
+    % workers that must get an extra trial
+    Remainder = N_trials rem NWorkers,
 
+    % Function to calculate how many trials each worker should run
+    % Workers 0 to Remainder-1 get one extra trial
+    wtree:update(
+        W,
+        num_trials,
+        fun(_ProcState, N) ->
+            if
+                N < Remainder -> TrialsPerWorker + 1;
+                true -> TrialsPerWorker
+            end
+        end
+    ),
+
+    wtree:reduce(
+        W,
+        % Leaf function: each worker runs sim_len/4 for its assigned number of trials
+        fun(ProcState) ->
+            NumTrials = wtree:get(ProcState, num_trials),
+            stat:accum([hw4_lib:sim_len(N_warmup, N_run, R_a, R_s) || _ <- lists:seq(1, NumTrials)])
+        end,
+        % Combine function: combine accumulators from different workers
+        fun stat:combine/2,
+        % Root function: return the final combined accumulator
+        fun(Acc) -> Acc end
+    ).
 
 % par_len_ms(W, N_trials, N_run, N_warmup, R_a, R_s)
 %   simulate a queue
@@ -158,4 +255,5 @@ par_len(W, N_trials, N_warmup, N_run, R_a, R_s) ->
 %
 %   This should be parallel implementation.  You can make it parallel by calling par_len/5.
 par_len_ms(W, N_trials, N_warmup, N_run, R_a, R_s) ->
-  ?you_need_to_write_this(par_len_ms, [W, N_trials, N_run, N_warmup, R_a, R_s]).
+    S = par_len(W, N_trials, N_warmup, N_run, R_a, R_s),
+    [{mean, stat:mean(S)}, {std, stat:std(S)}].
