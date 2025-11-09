@@ -2,6 +2,7 @@
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
 \usepackage{upquote}
+\usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{wasysym}
 \usepackage{color}
@@ -29,8 +30,8 @@
 \newcommand{\gpumodel}{RTX 3070 Ti}
 
 \newenvironment{answer}
-{\color{blue}}
-{\normalfont}
+{\par\color{blue}}
+{\normalfont\par}
 
 \newcounter{saveenumii}
 \begin{document}
@@ -134,10 +135,27 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                     \code{ar\_op(op, n)} \code{n > 7}.
                     \begin{enumerate}
                         \item (\textbf{2 points}) How many times in total is the branch taken for this call to \code{ar\_op}?
+                              \begin{answer}
+                                  n-7 times.
+                              \end{answer}
                         \item (\textbf{2 points}) How many times in total is the branch not-taken for this call to \code{ar\_op}?
+                              \begin{answer}
+                                  1 time.
+                              \end{answer}
                         \item (\textbf{6 points}) If the branch-predictor uses the saturating counter method described above,
                               what fraction of the \code{i < n-7} branches will be predicted correctly?\\
                               Provide a brief (one or two sentences) justification for your answer.
+                              \begin{answer}
+                                  \begin{displaymath}
+                                      \left\{
+                                      \begin{array}{ll}
+                                          \frac{0}{1}      & \text{if } n \leq 7 \\[5pt]
+                                          \frac{n-7}{n-6}, & \text{otherwise }
+                                      \end{array}
+                                      \right.
+                                  \end{displaymath}
+                                  Since the incrementor starts at 0 and increases to 3, it will only be incorrect one time and that is when $i = n - 7$. So it will correctly predict $n - 7$ out of $n - 6$ branches.
+                              \end{answer}
                     \end{enumerate}
 
               \item (\textbf{5 points})
