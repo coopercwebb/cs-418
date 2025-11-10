@@ -1,6 +1,7 @@
 -module(hw5).
 
--export([ed_par/4, ed_par/5]). % for Q2, dynamic programming
+% for Q2, dynamic programming
+-export([ed_par/4, ed_par/5]).
 
 % exports below are for Q3, Sorting on a Linear Array
 -export([bubble/1, odd_even/1, sort/2]).
@@ -21,67 +22,73 @@
 %   In fact, you should not modify hw5_lib.erl.  We will test your code using
 %   the supplied version.  You should find calls to you_need_to_write_this
 %   in this template file and replace them with your solution.
--import(hw5_lib,
-	[ you_need_to_write_this/2,
-	  default_op_costs/0 %, string_to_strcost/2, ed_tile/3,
-	  % chain_create/2, chain_exit/1, chain_send/2, chain_receive/1
-	]).
-
+-import(
+    hw5_lib,
+    [
+        you_need_to_write_this/2,
+        %, string_to_strcost/2, ed_tile/3,
+        default_op_costs/0
+        % chain_create/2, chain_exit/1, chain_send/2, chain_receive/1
+    ]
+).
 
 % ed_par(S1, S2, OpCosts, NW, TileWidth) -> EditDistance
-ed_par(S1, S2, OpCosts, NW, TileWidth)
-    when is_list(S1), is_list(S2), is_integer(NW), NW >= 1,
-	 is_integer(TileWidth), TileWidth >= 1 ->
-  hw5_lib:you_need_to_write_this(ed_par, [S1, S2, OpCosts, NW, TileWidth]).
-  % Implementation notes (from Mark):
-  %   Please delete these notes when you have completed your implementation.
-  %   Feel free to add comments that help us understand your solution.
-  %
-  %   My solution divides the computation into tiles by breaking
-  %   S1 and S2 into segments.
-  %   I use hw5_lib:string_to_strcost/2 function to convert S1 and
-  %   S2 into the list of {Element, Cost} tuples as described in the
-  %   comments for ed_tile (and ed_row, and ed_tab, take your pick).
-  %   I used a process chain -- that's why I provided a set of functions
-  %   for implementing process chains in hw5_lib.erl.
-  %   
-  %   Having divided the computation into tiles, the key observation
-  %   is that tiles overlap!  For example if TileLeft and TileRight
-  %   are adjacent tiles with TileLeft to the left of TileRight, then
-  %   the leftmost column of TileRight is the same as the rightmost
-  %   column of TileLeft.  Why?  Because the values for the column
-  %   were computed computing TileLeft, and they are needed as the
-  %   starting point for each row in TileRight.  In the same way,
-  %   if TileUp and TileDown are adjacent tiles with TileUp above
-  %   TileDown, then the bottommost row of TileUp is the same as the
-  %   topmost row of TileDown.
-  %     When debugging my code, I hit a problem that my first attempt
-  %   at dividing S1 and S2 into segments for the tiles didn't take
-  %   into account that these segments need to overlap the same way
-  %   that the tiles do.  At least they need to overlap in my solution.
-  %   I spotted the problem by modifying my ed_worker function (the Fun
-  %   parameter to hw5_lib:chain_create/3) to show the LeftColumn and
-  %   TopRow at the start of each tile computation and the RightColumn
-  %   and BottomRow and the end of each tile computation.
-  %   I compared this with:
-  %     hw5_lib:ed_tab(hw5_lib:string_to_strcosts(S1),
-  %                    hw5_lib:string_to_strcosts(S2),
-  %                    hw5_lib:default_op_costs())
-  %   and found the problem.
-  %
-  %   Oh, right.  My solution is 8 lines of Erlang.  Much shorter than
-  %   the comments explaining my implementation effort.
+ed_par(S1, S2, OpCosts, NW, TileWidth) when
+    is_list(S1),
+    is_list(S2),
+    is_integer(NW),
+    NW >= 1,
+    is_integer(TileWidth),
+    TileWidth >= 1
+->
+    hw5_lib:you_need_to_write_this(ed_par, [S1, S2, OpCosts, NW, TileWidth]).
+% Implementation notes (from Mark):
+%   Please delete these notes when you have completed your implementation.
+%   Feel free to add comments that help us understand your solution.
+%
+%   My solution divides the computation into tiles by breaking
+%   S1 and S2 into segments.
+%   I use hw5_lib:string_to_strcost/2 function to convert S1 and
+%   S2 into the list of {Element, Cost} tuples as described in the
+%   comments for ed_tile (and ed_row, and ed_tab, take your pick).
+%   I used a process chain -- that's why I provided a set of functions
+%   for implementing process chains in hw5_lib.erl.
+%
+%   Having divided the computation into tiles, the key observation
+%   is that tiles overlap!  For example if TileLeft and TileRight
+%   are adjacent tiles with TileLeft to the left of TileRight, then
+%   the leftmost column of TileRight is the same as the rightmost
+%   column of TileLeft.  Why?  Because the values for the column
+%   were computed computing TileLeft, and they are needed as the
+%   starting point for each row in TileRight.  In the same way,
+%   if TileUp and TileDown are adjacent tiles with TileUp above
+%   TileDown, then the bottommost row of TileUp is the same as the
+%   topmost row of TileDown.
+%     When debugging my code, I hit a problem that my first attempt
+%   at dividing S1 and S2 into segments for the tiles didn't take
+%   into account that these segments need to overlap the same way
+%   that the tiles do.  At least they need to overlap in my solution.
+%   I spotted the problem by modifying my ed_worker function (the Fun
+%   parameter to hw5_lib:chain_create/3) to show the LeftColumn and
+%   TopRow at the start of each tile computation and the RightColumn
+%   and BottomRow and the end of each tile computation.
+%   I compared this with:
+%     hw5_lib:ed_tab(hw5_lib:string_to_strcosts(S1),
+%                    hw5_lib:string_to_strcosts(S2),
+%                    hw5_lib:default_op_costs())
+%   and found the problem.
+%
+%   Oh, right.  My solution is 8 lines of Erlang.  Much shorter than
+%   the comments explaining my implementation effort.
 
 ed_par(S1, S2, NW, TileWidth) ->
-  ed_par(S1, S2, default_op_costs(), NW, TileWidth).
+    ed_par(S1, S2, default_op_costs(), NW, TileWidth).
 
 % My code also has:
 % ed_worker(Chain, LeftCol, OpCosts) -> ...
 %   It's four lines of code.
 
 % I wrote one more helper function.  Five lines of code.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                          %
@@ -130,10 +137,11 @@ ed_par(S1, S2, NW, TileWidth) ->
 %     Each sublist corresponds to a set of compare-and-swap elements of the same "color" in
 %     the figures in hw5.pdf.
 bubble(N) when is_integer(N), 2 =< N ->
-  [    [ { J, J+1 } || J <- lists:seq(I rem 2, I, 2) ]
-    || I <- lists:seq(0, N-2) ++ lists:seq(N-3, 0, -1) ];
+    [
+        [{J, J + 1} || J <- lists:seq(I rem 2, I, 2)]
+     || I <- lists:seq(0, N - 2) ++ lists:seq(N - 3, 0, -1)
+    ];
 bubble(N) when is_integer(N), 0 =< N -> [].
-
 
 % odd_even(N) -> SortingNetwork
 % Generate a sorting network for odd-even transposition sort with N inputs.
@@ -146,10 +154,11 @@ bubble(N) when is_integer(N), 0 =< N -> [].
 %      [{1,2},{3,4}],
 %      [{0,1},{2,3}]]
 odd_even(N) when is_integer(N), 2 =< N ->
-  [    [ { J, J+1 } || J <- lists:seq(I rem 2, N-2, 2) ]
-    || I <- lists:seq(0, N-1) ];
+    [
+        [{J, J + 1} || J <- lists:seq(I rem 2, N - 2, 2)]
+     || I <- lists:seq(0, N - 1)
+    ];
 odd_even(N) when is_integer(N), 0 =< N -> [].
-
 
 % sort(SortNet, Data) -> SortedData
 %   Parameters:
@@ -164,33 +173,38 @@ odd_even(N) when is_integer(N), 0 =< N -> [].
 %     SortedData: the same values as Data but sorted into ascending order.
 sort(SortNet, []) when is_list(SortNet) -> [];
 sort(SortNet, Data) when is_list(SortNet), is_list(Data) ->
-  N = length(Data),
-  {_, Sorted} =
-    lists:unzip(
-      lists:sort( % sorting by index in the Map
-	maps:to_list(
-	  lists:foldl(
-	    fun({I, J}, M) ->
-	      A = maps:get(I, M),
-	      B = maps:get(J, M),
-	      maps:put(I, min(A, B), maps:put(J, max(A, B), M))
-	    end,
-	    maps:from_list([{I, D} || {I, D} <- lists:zip(lists:seq(0, N-1), Data)]),
-	    lists:flatten(SortNet))))),
+    N = length(Data),
+    {_, Sorted} =
+        lists:unzip(
+            % sorting by index in the Map
+            lists:sort(
+                maps:to_list(
+                    lists:foldl(
+                        fun({I, J}, M) ->
+                            A = maps:get(I, M),
+                            B = maps:get(J, M),
+                            maps:put(I, min(A, B), maps:put(J, max(A, B), M))
+                        end,
+                        maps:from_list([{I, D} || {I, D} <- lists:zip(lists:seq(0, N - 1), Data)]),
+                        lists:flatten(SortNet)
+                    )
+                )
+            )
+        ),
     Sorted.
 
 % A few simple tests for bubble, odd_even, and sort.
 try_these() -> [0, 1, 2, 3, 5, 6, 100, 101].
-bubble_test() -> [ bubble_test(N) || N <- try_these() ].
+bubble_test() -> [bubble_test(N) || N <- try_these()].
 bubble_test(N) -> sort_test(fun ?MODULE:bubble/1, N).
-odd_even_test() -> [ odd_even_test(N) || N <- try_these() ].
+odd_even_test() -> [odd_even_test(N) || N <- try_these()].
 odd_even_test(N) -> sort_test(fun ?MODULE:odd_even/1, N).
 
 sort_test(SortNetFun, N) ->
-  SortNet = SortNetFun(N),
-  Random = misc:rlist(N, round(math:pow(10, ceil(1.5*math:log10(max(N,2)))))),
-  Sorted = sort(SortNet, Random),
-  ?assertEqual(lists:sort(Random), Sorted).
+    SortNet = SortNetFun(N),
+    Random = misc:rlist(N, round(math:pow(10, ceil(1.5 * math:log10(max(N, 2)))))),
+    Sorted = sort(SortNet, Random),
+    ?assertEqual(lists:sort(Random), Sorted).
 
 % A version of sort that prints the output after each batch of compare-and-swap operations.
 sortv(SortNet, Data) -> sortv(SortNet, Data, 0).
@@ -203,40 +217,48 @@ sortv(Data) -> sortv(odd_even(length(Data)), Data).
 %   If there are more columns, compute the output of the next column and recurse.
 %   Return the output of the final column.
 sortv([], Data, J) ->
-  io:format("J =~2b:  ~s~n", [J, show_data(Data, J)]),
-  Data;
+    io:format("J =~2b:  ~s~n", [J, show_data(Data, J)]),
+    Data;
 sortv([SortHd | SortTl], Data, J) ->
-  io:format("J =~2b:  ~s~n", [J, show_data(Data, J)]),
-  sortv(SortTl, sort(SortHd, Data), J+1).
+    io:format("J =~2b:  ~s~n", [J, show_data(Data, J)]),
+    sortv(SortTl, sort(SortHd, Data), J + 1).
 
-
-show_data([], _) -> "[]";
-show_data(Data=[_], _) -> io_lib:format("~p", [Data]);
-show_data(Data=[_|_], J) ->
-  [ % $[,
-    [    io_lib:format("~s~w",
-		       [ if (I rem 2) == (J rem 2) -> "|";
-			    I == 0 -> " ";
-			    true -> ","
-			 end, D ])
-      || {I, D} <- lists:zip(lists:seq(0, length(Data)-1), Data) ],
-    if (J rem 2) == 0 -> "|";
-       (J rem 2) == 1 -> " "
-    end
-    % , $]
-  ].
+show_data([], _) ->
+    "[]";
+show_data(Data = [_], _) ->
+    io_lib:format("~p", [Data]);
+show_data(Data = [_ | _], J) ->
+    % $[,
+    [
+        [
+            io_lib:format(
+                "~s~w",
+                [
+                    if
+                        (I rem 2) == (J rem 2) -> "|";
+                        I == 0 -> " ";
+                        true -> ","
+                    end,
+                    D
+                ]
+            )
+         || {I, D} <- lists:zip(lists:seq(0, length(Data) - 1), Data)
+        ],
+        if
+            (J rem 2) == 0 -> "|";
+            (J rem 2) == 1 -> " "
+        end
+        % , $]
+    ].
 
 ik(Data) ->
-  [I || {I, D} <- lists:zip(lists:seq(0, length(Data)-1), Data), D == 0].
+    [I || {I, D} <- lists:zip(lists:seq(0, length(Data) - 1), Data), D == 0].
 
 ijk(Data) -> ijk(odd_even(length(Data)), Data, 0).
 
 ijk([], Data, J) ->
-  io:format("J =~2b: i_{j,k} = ~w~n", [J, ik(Data)]),
-  Data;
+    io:format("J =~2b: i_{j,k} = ~w~n", [J, ik(Data)]),
+    Data;
 ijk([SortHd | SortTl], Data, J) ->
-  io:format("J =~2b: i_{j,k} = ~w~n", [J, ik(Data)]),
-  ijk(SortTl, sort(SortHd, Data), J+1).
-
-
-
+    io:format("J =~2b: i_{j,k} = ~w~n", [J, ik(Data)]),
+    ijk(SortTl, sort(SortHd, Data), J + 1).

@@ -30,16 +30,17 @@
 %   Example: hw5_lib:ed_seq("hello", "world", hw5_lib:default_op_costs()).
 %     Should return 6.
 ed_seq(S1, S2, OpCosts) ->
-  {RightCol,_} = ed_tile(string_to_strcost(S1, OpCosts),
-			 string_to_strcost(S2, OpCosts),
-			 OpCosts),
-  element(2, lists:last(RightCol)).
+    {RightCol, _} = ed_tile(
+        string_to_strcost(S1, OpCosts),
+        string_to_strcost(S2, OpCosts),
+        OpCosts
+    ),
+    element(2, lists:last(RightCol)).
 
 % ed_seq(S1, S2) -> EditCost
 %   Compute the editing cost for transforming S1 to S2 using the defaults
 %     costs for insertions, deletions, and replacements.
 ed_seq(S1, S2) -> ed_seq(S1, S2, default_op_costs()).
-
 
 % ed_tab0(LeftString, TopString, OpCosts) -> Tableau
 %   Return the dynamic programming tableau for computing the editing distance
@@ -50,7 +51,7 @@ ed_seq(S1, S2) -> ed_seq(S1, S2, default_op_costs()).
 %   memory to store the entire tableau.  Given the memory limits for student
 %   accounts when running Erlang on CS department machines, this is likely
 %   to be a severe constraint for larger examples.
-%   
+%
 %   Note: ed_seq uses ed_tile (below) which uses O(length(S2)) space.
 %
 %   Parameters:
@@ -105,18 +106,20 @@ ed_seq(S1, S2) -> ed_seq(S1, S2, default_op_costs()).
 %  Examples: try hw5_lib:ed_tab0("hello", "world"), and
 %    hw5_lib:ed_tab0("say hello", "to Othello.").
 %   If you need more examplse, try more combinations of short strings.
-ed_tab0(LeftString, RightString, OpCosts)
-    when is_list(LeftString), is_list(RightString), is_tuple(OpCosts) ->
-  % See the comments for ed_tab/3 below for a description of why we use
-  %   string_to_strcost.
-  T = ed_tab(tl(string_to_strcost(LeftString, OpCosts)),
-	     string_to_strcost(RightString, OpCosts),
-	     OpCosts),
-  [strcost_to_costs(Row) || Row <- T].
+ed_tab0(LeftString, RightString, OpCosts) when
+    is_list(LeftString), is_list(RightString), is_tuple(OpCosts)
+->
+    % See the comments for ed_tab/3 below for a description of why we use
+    %   string_to_strcost.
+    T = ed_tab(
+        tl(string_to_strcost(LeftString, OpCosts)),
+        string_to_strcost(RightString, OpCosts),
+        OpCosts
+    ),
+    [strcost_to_costs(Row) || Row <- T].
 strcost_to_costs(SC) -> [Cost || {_Char, Cost} <- SC].
 
 ed_tab0(LeftString, RightString) -> ed_tab0(LeftString, RightString, default_op_costs()).
-
 
 % ed_tab: see the comments above for ed_tab0
 %   Parameters:
@@ -153,10 +156,10 @@ ed_tab0(LeftString, RightString) -> ed_tab0(LeftString, RightString, default_op_
 %    an empty string, e.g. lists:sublist("hello", 0).
 %    Compare with hw5_lib:ed_tab0("hello", "world").
 ed_tab([Left_Hd | Left_Tl], PrevRow, OpCosts) ->
-  ThisRow = ed_row(Left_Hd, PrevRow, OpCosts),
-  [ThisRow | ed_tab(Left_Tl, ThisRow, OpCosts)];
-ed_tab([], _, _) -> [].
-
+    ThisRow = ed_row(Left_Hd, PrevRow, OpCosts),
+    [ThisRow | ed_tab(Left_Tl, ThisRow, OpCosts)];
+ed_tab([], _, _) ->
+    [].
 
 % ed_row({RowChar, LeftCost}, PrevRow, OpCosts)
 %   Compute one row of the dynamic programming tableau for editing distance
@@ -171,20 +174,27 @@ ed_tab([], _, _) -> [].
 %                 match (no added cost) or a replacement.
 %     OpCosts:  The costs for insert/delete and for replace.
 %   Return value: The row from the current position to the end.
-ed_row({RowChar, LeftCost},
-       [{UpLeftChar, UpLeftCost} | Up_Tl = [{UpChar, UpCost} | _]],
-       OpCosts={CostInsDel,CostReplace}) ->
-  MyCost = lists:min(
-    [ if UpChar == RowChar -> UpLeftCost;
-	 true -> UpLeftCost + CostReplace
-      end,
-      UpCost + CostInsDel,
-      LeftCost + CostInsDel ]),
-  [   {UpLeftChar, LeftCost}
-    | ed_row({RowChar, MyCost}, Up_Tl, OpCosts) ];
-ed_row({_, RightCost}, [{RightMostChar,_}], _UpCost) ->
-  [{RightMostChar, RightCost}].
-
+ed_row(
+    {RowChar, LeftCost},
+    [{UpLeftChar, UpLeftCost} | Up_Tl = [{UpChar, UpCost} | _]],
+    OpCosts = {CostInsDel, CostReplace}
+) ->
+    MyCost = lists:min(
+        [
+            if
+                UpChar == RowChar -> UpLeftCost;
+                true -> UpLeftCost + CostReplace
+            end,
+            UpCost + CostInsDel,
+            LeftCost + CostInsDel
+        ]
+    ),
+    [
+        {UpLeftChar, LeftCost}
+        | ed_row({RowChar, MyCost}, Up_Tl, OpCosts)
+    ];
+ed_row({_, RightCost}, [{RightMostChar, _}], _UpCost) ->
+    [{RightMostChar, RightCost}].
 
 % ed_tile(LeftCol, TopRow, OpCost) -> {RightCol, BottomRow}
 %   Overview:
@@ -223,26 +233,27 @@ ed_row({_, RightCost}, [{RightMostChar,_}], _UpCost) ->
 %       hw5_lib:string_to_strcost("world"),
 %       hw5_lib:default_op_costs()).
 ed_tile([_LeftCol0 | LeftCol_Tl], TopRow, OpCosts) ->
-  ed_tile(LeftCol_Tl, TopRow, OpCosts, [{'_', element(2, lists:last(TopRow))}]).
+    ed_tile(LeftCol_Tl, TopRow, OpCosts, [{'_', element(2, lists:last(TopRow))}]).
 
-ed_tile([Left_Hd={LeftChar,_}| Left_Tl], PrevRow, OpCosts, RightColAcc) ->
-  ThisRow = ed_row(Left_Hd, PrevRow, OpCosts),
-  {_, RightCol} = lists:last(ThisRow),
-  ed_tile(Left_Tl, ThisRow, OpCosts, [{LeftChar, RightCol} | RightColAcc]);
+ed_tile([Left_Hd = {LeftChar, _} | Left_Tl], PrevRow, OpCosts, RightColAcc) ->
+    ThisRow = ed_row(Left_Hd, PrevRow, OpCosts),
+    {_, RightCol} = lists:last(ThisRow),
+    ed_tile(Left_Tl, ThisRow, OpCosts, [{LeftChar, RightCol} | RightColAcc]);
 ed_tile([], BottomRow, _OpCosts, RightColAcc) ->
-  {lists:reverse(RightColAcc), BottomRow}.
-
+    {lists:reverse(RightColAcc), BottomRow}.
 
 string_to_strcost(S, {CostInsDel, _}) ->
-  [ {'_', 0} |
-    [    {C, I*CostInsDel}
-      || {C, I} <- lists:zip(S, lists:seq(1, length(S)))] ].
+    [
+        {'_', 0}
+        | [
+            {C, I * CostInsDel}
+         || {C, I} <- lists:zip(S, lists:seq(1, length(S)))
+        ]
+    ].
 
 string_to_strcost(S) -> string_to_strcost(S, default_op_costs()).
 
 default_op_costs() -> {1, 1.5}.
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                                                      %
@@ -266,7 +277,7 @@ default_op_costs() -> {1, 1.5}.
 %
 % Return Value:
 %   Chain -- an Erlang map used by the other chain_* functions.
-% 
+%
 % Note: chain_create/2 calls chain_create/3 setting the DebugTimeOut
 %   parameter to 5.0 (i.e. seconds)
 chain_create(NW, Fun) -> chain_create(NW, Fun, 5.0).
@@ -281,14 +292,22 @@ chain_create(NW, Fun) -> chain_create(NW, Fun, 5.0).
 %
 % Return Value:
 %   Chain -- an Erlang map used by the other chain_* functions.
-chain_create(NW, Fun, DebugTimeOut)
-    when is_integer(NW), NW >= 1, is_function(Fun, 1),
-	 is_number(DebugTimeOut), DebugTimeOut >= 0 ->
-  chain_create(NW, Fun, undef, DebugTimeOut);
-chain_create(Fun, ArgLists, DebugTimeOut)
-    when is_function(Fun), is_list(ArgLists), length(ArgLists) >= 1,
-	 is_number(DebugTimeOut), DebugTimeOut >= 0 ->
-  chain_create(length(ArgLists), Fun, ArgLists, DebugTimeOut).
+chain_create(NW, Fun, DebugTimeOut) when
+    is_integer(NW),
+    NW >= 1,
+    is_function(Fun, 1),
+    is_number(DebugTimeOut),
+    DebugTimeOut >= 0
+->
+    chain_create(NW, Fun, undef, DebugTimeOut);
+chain_create(Fun, ArgLists, DebugTimeOut) when
+    is_function(Fun),
+    is_list(ArgLists),
+    length(ArgLists) >= 1,
+    is_number(DebugTimeOut),
+    DebugTimeOut >= 0
+->
+    chain_create(length(ArgLists), Fun, ArgLists, DebugTimeOut).
 
 % chain_create(NW, Fun, ArgLists, DebugTimeOut)  ## not exported
 %   Merge the two cases from chain_create/3 into a single function.
@@ -296,32 +315,39 @@ chain_create(Fun, ArgLists, DebugTimeOut)
 %   Return a Chain object where our next process is the first
 %     process of the chain, and our prev process is the last
 %     process of the chain.
-chain_create(NW, Fun, ArgLists, DebugTimeOut)
-    when is_integer(NW), NW >= 1, is_number(DebugTimeOut), DebugTimeOut >= 0,
-	 (is_list(ArgLists) andalso length(ArgLists) == NW) orelse ArgLists == undef ->
-  % TimeOut is the integer-milliseconds version of DebugTimeOut
-  %   because an after clause for receive works on integer milliseconds.
-  TimeOut = if is_integer(DebugTimeOut) -> DebugTimeOut;
-	       is_float(DebugTimeOut) -> round(1000.0 * DebugTimeOut)
-	    end,
+chain_create(NW, Fun, ArgLists, DebugTimeOut) when
+    is_integer(NW),
+    NW >= 1,
+    is_number(DebugTimeOut),
+    DebugTimeOut >= 0,
+    (is_list(ArgLists) andalso length(ArgLists) == NW) orelse ArgLists == undef
+->
+    % TimeOut is the integer-milliseconds version of DebugTimeOut
+    %   because an after clause for receive works on integer milliseconds.
+    TimeOut =
+        if
+            is_integer(DebugTimeOut) -> DebugTimeOut;
+            is_float(DebugTimeOut) -> round(1000.0 * DebugTimeOut)
+        end,
 
-  % spawn the chain of processes
-  LastPid = chain_create(NW, self(), Fun, ArgLists, TimeOut),
+    % spawn the chain of processes
+    LastPid = chain_create(NW, self(), Fun, ArgLists, TimeOut),
 
-  % connect ourselves to the chain, and return Chain.
-  chain_worker(LastPid, TimeOut, fun(Chain) -> Chain end, []).
- 
+    % connect ourselves to the chain, and return Chain.
+    chain_worker(LastPid, TimeOut, fun(Chain) -> Chain end, []).
 
 % chain_create(NW, PrevPid, Fun, Args, TimeOut)  ## not exported
 %   spawn the worker processes.  Set up their Chain objects.
-chain_create(0, LastPid, _, _, _) -> LastPid;
+chain_create(0, LastPid, _, _, _) ->
+    LastPid;
 chain_create(NW, PrevPid, Fun, Args, TimeOut) ->
-  {Arg_Hd, Arg_Tl} = case Args of
-		       [Hd | Tl] -> {Hd, Tl};
-		       undef -> {[], undef}
-		     end,
-  NewPid = spawn(fun() -> chain_worker(PrevPid, TimeOut, Fun, Arg_Hd) end),
-  chain_create(NW-1,NewPid, Fun, Arg_Tl, TimeOut).
+    {Arg_Hd, Arg_Tl} =
+        case Args of
+            [Hd | Tl] -> {Hd, Tl};
+            undef -> {[], undef}
+        end,
+    NewPid = spawn(fun() -> chain_worker(PrevPid, TimeOut, Fun, Arg_Hd) end),
+    chain_create(NW - 1, NewPid, Fun, Arg_Tl, TimeOut).
 
 % chain_exit(Chain)
 %   Terminate the processes in a chain.
@@ -333,15 +359,14 @@ chain_create(NW, PrevPid, Fun, Args, TimeOut) ->
 %   immediately, but that uses Erlang process management features we haven't
 %   described in class or assigned in the readings.
 chain_exit(Chain) ->
-  FirstProc = maps:get(next, Chain),
-  FirstProc ! {self(), exit},
-  LastProc = maps:get(prev, Chain),
-  TimeOut = maps:get(timeout, Chain),
-  receive
-    {LastProc, exit} -> ok
-  after TimeOut -> timeout
-  end.
-
+    FirstProc = maps:get(next, Chain),
+    FirstProc ! {self(), exit},
+    LastProc = maps:get(prev, Chain),
+    TimeOut = maps:get(timeout, Chain),
+    receive
+        {LastProc, exit} -> ok
+    after TimeOut -> timeout
+    end.
 
 % chain_worker(PrevPid, TimeOut, Fun, Args)   ## not exported
 %   Tell PrevPid who we are -- PrevPid was spawned before we were and they
@@ -353,18 +378,20 @@ chain_exit(Chain) ->
 %     For most worker processes, this value is silently discarded.
 %     But, the master process uses it to get its Chain map.
 chain_worker(PrevPid, TimeOut, Fun, Args) ->
-  PrevPid ! {self(), chain_next},
-  NextPid = receive
-    {NPid, chain_next} -> NPid
-  after TimeOut ->
-    io:format("~w: timeout waiting to receive a message telling me who the next chain-process is." ++
-	      "  Good bye.~n",
-	      [self()]),
-    exit(ok)
-  end,
-  Chain = #{prev => PrevPid, next => NextPid, timeout => TimeOut},
-  apply(Fun, [Chain | Args]).
-
+    PrevPid ! {self(), chain_next},
+    NextPid =
+        receive
+            {NPid, chain_next} -> NPid
+        after TimeOut ->
+            io:format(
+                "~w: timeout waiting to receive a message telling me who the next chain-process is." ++
+                    "  Good bye.~n",
+                [self()]
+            ),
+            exit(ok)
+        end,
+    Chain = #{prev => PrevPid, next => NextPid, timeout => TimeOut},
+    apply(Fun, [Chain | Args]).
 
 % chain_send(Chain, Who, What) -> What
 %   Send a message to Who.
@@ -374,17 +401,17 @@ chain_worker(PrevPid, TimeOut, Fun, Args) ->
 %     What:   the message to send.
 %   Return value:
 %     What:   just because that mimics Erlang's ! operator
-chain_send(Chain, Who, What)
-    when Who==prev; Who==next ->
-  Dst = maps:get(Who, Chain),
-  Dst ! {self(), chain_msg, What},
-  What.
+chain_send(Chain, Who, What) when
+    Who == prev; Who == next
+->
+    Dst = maps:get(Who, Chain),
+    Dst ! {self(), chain_msg, What},
+    What.
 
 % chain_send(Chain, What) -> What
 %   Send a message to the next processor in the chain.
 %   Equivalent to chain_send(Chain, next, What).
 chain_send(Chain, What) -> chain_send(Chain, next, What).
-
 
 % chain_receive(Chain, Who) -> ReceivedValue
 %   Receive a message from Who.
@@ -394,26 +421,27 @@ chain_send(Chain, What) -> chain_send(Chain, next, What).
 %   Return value:
 %     The value sent to this process by the specified sender having
 %     called chain_send/2 or chain_send/3.
-chain_receive(Chain, Who) when Who==prev; Who==next ->
-  Src = maps:get(Who, Chain),
-  Prev = maps:get(prev, Chain),
-  TimeOut = maps:get(timeout, Chain),
-  receive
-    {Prev, exit} ->
-      maps:get(next, Chain) ! {self(), exit},
-      exit(ok);
-    {Src, chain_msg, What} -> What
-  after TimeOut ->
-    io:format("~w: timeout while waiting to receive a message from Chain.~w = ~w.~n",
-	      [self(), Who, Src]),
-    exit(timeout)
-  end.
+chain_receive(Chain, Who) when Who == prev; Who == next ->
+    Src = maps:get(Who, Chain),
+    Prev = maps:get(prev, Chain),
+    TimeOut = maps:get(timeout, Chain),
+    receive
+        {Prev, exit} ->
+            maps:get(next, Chain) ! {self(), exit},
+            exit(ok);
+        {Src, chain_msg, What} ->
+            What
+    after TimeOut ->
+        io:format(
+            "~w: timeout while waiting to receive a message from Chain.~w = ~w.~n",
+            [self(), Who, Src]
+        ),
+        exit(timeout)
+    end.
 
 % chain_receive(Chain) -> ReceivedValue
 %   Equivalent to chain_receive(Chain, prev).
 chain_receive(Chain) -> chain_receive(Chain, prev).
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % The next four function give a simple demo of working with process chains.
@@ -432,19 +460,24 @@ chain_receive(Chain) -> chain_receive(Chain, prev).
 %       chain_demo_do(Chain, '*', 0): the product of the worker indices;
 %       chain_demo_do(Chain, 'max', 0): the maximum of the worker indices.
 chain_demo(NW) when is_integer(NW), NW >= 0 ->
-  % Note the [I] -- this is an argument list for chain_worker_demo.
-  Chain = chain_create(fun chain_worker_demo/2, [[I] || I <- lists:seq(1, NW)]),
+    % Note the [I] -- this is an argument list for chain_worker_demo.
+    Chain = chain_create(fun chain_worker_demo/2, [[I] || I <- lists:seq(1, NW)]),
 
-  io:format("sum of first ~b positive integers = ~b~n",
-	    [NW, chain_demo_do(Chain, '+', 0)]),
-  io:format("~b! = ~b~n",
-	    [NW, chain_demo_do(Chain, '*', 1)]),
-  io:format("max of first ~b positive integers = ~b~n",
-	    [NW, chain_demo_do(Chain, 'max', -1)]),
-  chain_exit(Chain).
+    io:format(
+        "sum of first ~b positive integers = ~b~n",
+        [NW, chain_demo_do(Chain, '+', 0)]
+    ),
+    io:format(
+        "~b! = ~b~n",
+        [NW, chain_demo_do(Chain, '*', 1)]
+    ),
+    io:format(
+        "max of first ~b positive integers = ~b~n",
+        [NW, chain_demo_do(Chain, 'max', -1)]
+    ),
+    chain_exit(Chain).
 
 chain_demo() -> chain_demo(10).
-
 
 % chain_worker_demo(Chain, I)
 %   Each worker in the chain starts with an integer, I.
@@ -452,14 +485,15 @@ chain_demo() -> chain_demo(10).
 %   {Op, X} from its predecessor.  It then sends {Op, Op(X, I)}
 %   to the next process in the chain.
 chain_worker_demo(Chain, I) ->
-  {Op, X} = chain_receive(Chain),
-  Y = case Op of
-	'+' -> X+I;
-	'*' -> X*I;
-	'max' -> max(X, I)
-      end,
-  chain_send(Chain, {Op, Y}),
-  chain_worker_demo(Chain, I).
+    {Op, X} = chain_receive(Chain),
+    Y =
+        case Op of
+            '+' -> X + I;
+            '*' -> X * I;
+            'max' -> max(X, I)
+        end,
+    chain_send(Chain, {Op, Y}),
+    chain_worker_demo(Chain, I).
 
 % chain_demo_do(Chain, Op, X)
 %   Called by the paster process.
@@ -467,37 +501,47 @@ chain_worker_demo(Chain, I) ->
 %   and then receive {Op, Result} from the last worker.
 %   Return Result.
 chain_demo_do(Chain, Op, X) ->
-  chain_send(Chain, {Op, X}),
-  element(2, chain_receive(Chain)).
+    chain_send(Chain, {Op, X}),
+    element(2, chain_receive(Chain)).
 
 chain_demo2(NW) when is_integer(NW), NW >= 0 ->
-  Chain = chain_create(NW, fun chain_worker_demo2/1),
+    Chain = chain_create(NW, fun chain_worker_demo2/1),
 
-  chain_send(Chain, 0),
-  io:format("~w = ~w~n", [chain_receive(Chain), NW]),
-  io:format("sum of first ~b positive integers = ~b~n",
-	    [NW, chain_demo_do(Chain, '+', 0)]),
-  io:format("~b! = ~b~n",
-	    [NW, chain_demo_do(Chain, '*', 1)]),
-  io:format("max of first ~b positive integers = ~b~n",
-	    [NW, chain_demo_do(Chain, 'max', -1)]),
-  chain_exit(Chain).
+    chain_send(Chain, 0),
+    io:format("~w = ~w~n", [chain_receive(Chain), NW]),
+    io:format(
+        "sum of first ~b positive integers = ~b~n",
+        [NW, chain_demo_do(Chain, '+', 0)]
+    ),
+    io:format(
+        "~b! = ~b~n",
+        [NW, chain_demo_do(Chain, '*', 1)]
+    ),
+    io:format(
+        "max of first ~b positive integers = ~b~n",
+        [NW, chain_demo_do(Chain, 'max', -1)]
+    ),
+    chain_exit(Chain).
 
 chain_demo2() -> chain_demo2(7).
 
 chain_worker_demo2(Chain) ->
-  chain_worker_demo(Chain, chain_send(Chain, 1+chain_receive(Chain))).
-
+    chain_worker_demo(Chain, chain_send(Chain, 1 + chain_receive(Chain))).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 you_need_to_write_this(FunAtom, Args) ->
-  io:format("missing implementation for~n" ++
-	    "  ~w(~s)~n",
-	    [FunAtom, argString(Args)]),
-  error(missing_implementation).
+    io:format(
+        "missing implementation for~n" ++
+            "  ~w(~s)~n",
+        [FunAtom, argString(Args)]
+    ),
+    error(missing_implementation).
 
-argString([]) -> [];
+argString([]) ->
+    [];
 argString([Arg1 | ArgTl]) ->
-  [   io_lib:format("~p", [Arg1])
-    | [ io_lib:format(", ~p", [Arg]) || Arg <- ArgTl]].
+    [
+        io_lib:format("~p", [Arg1])
+        | [io_lib:format(", ~p", [Arg]) || Arg <- ArgTl]
+    ].
