@@ -35,10 +35,75 @@ The problem is almost always defined using three basic, "unit-cost" operations (
 
         Example: "book" → "look" (1 substitution)
 
-## Timing
+## Testing/Timing
 
 ```erlang
-time_it:t(fun() -> hw5_lib:ed_seq("hello", "world", hw5_lib:default_op_costs()) end).
+eunit:test(hw5). % runs entire testing suite within hw5
+hw5_timing:ed_timing_suite_tilesize(). % timing measurements based on tile sizes
+```
 
-time_it:t(fun() -> hw5:ed_par("hello", "world", 3, 3) end).
+```shell
+13> hw5_timing:ed_timing_suite_tilesize(). % timing measurements based on tile sizes
+
+=== Testing with 5000 char strings, varied tilewidth ===
+
+=== Test 0: BENCHMARK (SEQUENTIAL) ===
+Sequential (n=10): mean = 4.058337 s, std = 0.761914 s
+
+=== Test 1: Tile Width 2 ===
+Workers (NW): 2500
+Parallel: mean = 1.075795 s, std = 0.044341 s
+Speedup: 3.77x
+
+=== Test 2: Tile Width 5 ===
+Workers (NW): 1000
+Parallel: mean = 0.352421 s, std = 0.016580 s
+Speedup: 11.52x
+
+=== Test 3: Tile Width 10 ===
+Workers (NW): 500
+Parallel: mean = 0.192560 s, std = 0.005881 s
+Speedup: 21.08x
+
+=== Test 4: Tile Width 20 ===
+Workers (NW): 250
+Parallel: mean = 0.125761 s, std = 0.006537 s
+Speedup: 32.27x
+
+=== Test 5: Tile Width 40 ===
+Workers (NW): 125
+Parallel: mean = 0.110200 s, std = 0.003502 s
+Speedup: 36.83x
+
+=== Test 6: Tile Width 80 ===
+Workers (NW): 63
+Parallel: mean = 0.160911 s, std = 0.006686 s
+Speedup: 25.22x
+
+=== Test 7: Tile Width 160 ===
+Workers (NW): 32
+Parallel: mean = 0.291928 s, std = 0.013815 s
+Speedup: 13.90x
+
+=== Test 8: Tile Width 250 ===
+Workers (NW): 20
+Parallel: mean = 0.440605 s, std = 0.035544 s
+Speedup: 9.21x
+
+=== Test 9: Tile Width 500 ===
+Workers (NW): 10
+Parallel: mean = 0.837445 s, std = 0.053051 s
+Speedup: 4.85x
+
+=== Test 10: Tile Width 1000 ===
+Workers (NW): 5
+Parallel: mean = 1.354837 s, std = 0.132503 s
+Speedup: 3.00x
+
+=== Test 11: Tile Width 2500 ===
+Workers (NW): 2
+Parallel: mean = 3.161660 s, std = 0.399689 s
+Speedup: 1.28x
+
+=== Timing suite complete ===
 ```
