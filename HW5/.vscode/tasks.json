@@ -4,7 +4,7 @@
         {
             "label": "compile",
             "type": "shell",
-            "command": "mkdir -p _build/default/lib/hello/ebin && erlc +debug_info -o _build/default/lib/hello/ebin src/debug.erl src/hw5_lib.erl src/hw5.erl"
+            "command": "mkdir -p _build/default/lib/debug/ebin && erlc +debug_info -o _build/default/lib/debug/ebin src/debug.erl src/hw5_lib.erl src/hw5.erl"
         }
     ]
 }
