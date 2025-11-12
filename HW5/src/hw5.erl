@@ -26,9 +26,13 @@
     hw5_lib,
     [
         you_need_to_write_this/2,
-        %, string_to_strcost/2, ed_tile/3,
-        default_op_costs/0
-        % chain_create/2, chain_exit/1, chain_send/2, chain_receive/1
+        string_to_strcost/2,
+        ed_tile/3,
+        default_op_costs/0,
+        chain_create/2,
+        chain_exit/1,
+        chain_send/2,
+        chain_receive/1
     ]
 ).
 
@@ -41,7 +45,48 @@ ed_par(S1, S2, OpCosts, NW, TileWidth) when
     is_integer(TileWidth),
     TileWidth >= 1
 ->
-    hw5_lib:you_need_to_write_this(ed_par, [S1, S2, OpCosts, NW, TileWidth]).
+    LeftCol = segment_list(string_to_strcost(S1, OpCosts), TileWidth),
+    TopRow = segment_list(string_to_strcost(S2, OpCosts), TileWidth),
+    Chain = chain_create(NW, fun start_chain_worker/1),
+    start_chain(Chain, OpCosts, LeftCol, TopRow),
+    X = chain_receive(Chain),
+    chain_exit(Chain),
+    ok.
+
+% Claude 4.5 generated helper
+% creates overlapping segments (size 1 overlap)
+segment_list(List, Size) when length(List) =< Size ->
+    [List];
+segment_list([_ | _] = List, Size) ->
+    Segment = lists:sublist(List, Size),
+    Rest = lists:nthtail(Size - 1, List),
+    [Segment | segment_list(Rest, Size)].
+
+start_chain(Chain, OpCosts, LeftCol, [TopRow_Hd | TopRow_Tl]) ->
+    chain_send(Chain, {OpCosts, LeftCol, TopRow_Hd}),
+    continue_chain_master(Chain, TopRow_Tl).
+
+continue_chain_master(_Chain, []) ->
+    ok;
+continue_chain_master(Chain, [TopRow_Hd | TopRow_Tl]) ->
+    chain_send(Chain, TopRow_Hd),
+    continue_chain_master(Chain, TopRow_Tl).
+
+% a chain worker will complete an entire row
+% after its first tile is complete it will notify next (below).
+start_chain_worker(Chain) ->
+    % initial parameters
+    {OpCosts, [LeftCol_Hd | LeftCol_Tl], TopRow} = chain_receive(Chain),
+    {RightCol, BottomRow} = ed_tile(LeftCol_Hd, TopRow, OpCosts),
+    chain_send(Chain, {OpCosts, LeftCol_Tl, BottomRow}),
+    continue_chain_worker(Chain, OpCosts, RightCol).
+
+continue_chain_worker(Chain, OpCosts, LeftCol) ->
+    TopRow = chain_receive(Chain),
+    {RightCol, BottomRow} = ed_tile(LeftCol, TopRow, OpCosts),
+    chain_send(Chain, BottomRow),
+    continue_chain_worker(Chain, OpCosts, RightCol).
+
 % Implementation notes (from Mark):
 %   Please delete these notes when you have completed your implementation.
 %   Feel free to add comments that help us understand your solution.
