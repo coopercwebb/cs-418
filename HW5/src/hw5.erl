@@ -78,28 +78,19 @@ start_chain_worker(Chain) ->
     % initial parameters
     {OpCosts, [LeftCol_Hd | LeftCol_Tl], TopRow} = chain_receive(Chain),
     {RightCol, BottomRow} = ed_tile(LeftCol_Hd, TopRow, OpCosts),
-    % Determine if this is the last row
-    IsLastRow = (LeftCol_Tl == []),
     chain_send(Chain, {OpCosts, LeftCol_Tl, BottomRow}),
-    continue_chain_worker(Chain, OpCosts, RightCol, IsLastRow).
+    continue_chain_worker(Chain, OpCosts, RightCol).
 
-continue_chain_worker(Chain, OpCosts, LeftCol, IsLastRow) ->
+continue_chain_worker(Chain, OpCosts, LeftCol) ->
     TopRow = chain_receive(Chain),
     case TopRow of
         done ->
-            if
-                IsLastRow ->
-                    % Last row: send final cost back to master
-                    FinalCost = element(2, lists:last(LeftCol)),
-                    chain_send(Chain, FinalCost);
-                true ->
-                    % Not last row: just propagate done to next worker
-                    chain_send(Chain, done)
-            end;
+            FinalCost = element(2, lists:last(LeftCol)),
+            chain_send(Chain, FinalCost);
         _ ->
             {RightCol, BottomRow} = ed_tile(LeftCol, TopRow, OpCosts),
             chain_send(Chain, BottomRow),
-            continue_chain_worker(Chain, OpCosts, RightCol, IsLastRow)
+            continue_chain_worker(Chain, OpCosts, RightCol)
     end.
 
 % Implementation notes (from Mark):
