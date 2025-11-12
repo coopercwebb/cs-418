@@ -8,7 +8,7 @@
 -export([bubble_test/1, odd_even_test/1, sort_test/2]).
 -export([sortv/1, sortv/2, ik/1, ijk/1]).
 
--export([ed_timing_suite/0]).
+-export([ed_timing_suite_length/0, ed_timing_suite_tilesize/0]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -94,30 +94,70 @@ chain_worker_stable(Chain, OpCosts, LeftCol) ->
     chain_send(Chain, BottomRow),
     chain_worker_stable(Chain, OpCosts, RightCol).
 
-ed_timing_suite() ->
-    % Short test - should be very fast
+ed_timing_suite_length() ->
     io:format("~n=== Test 1: Short strings (5 chars) ===~n"),
     ed_timing_measurements("hello", "world", 3),
 
-    % Medium test - around 100 chars
     io:format("~n=== Test 2: Medium strings (100 chars) ===~n"),
     S100 = lists:duplicate(100, $a),
     ed_timing_measurements(S100, lists:duplicate(100, $b), 10),
 
-    % Longer test - around 500 chars
     io:format("~n=== Test 3: Longer strings (500 chars) ===~n"),
     S500 = lists:duplicate(500, $a),
     ed_timing_measurements(S500, lists:duplicate(500, $b), 20),
 
-    % Long test - around 1000 chars (should take > 1 second)
     io:format("~n=== Test 4: Long strings (1000 chars) ===~n"),
     S1000 = lists:duplicate(1000, $a),
     ed_timing_measurements(S1000, lists:duplicate(1000, $b), 50),
 
-    % Very long test - around 2000 chars (should take several seconds)
     io:format("~n=== Test 5: Very long strings (2000 chars) ===~n"),
     S2000 = lists:duplicate(2000, $a),
     ed_timing_measurements(S2000, lists:duplicate(2000, $b), 100),
+
+    io:format("~n=== Test 6: Ext long strings (5000 chars) ===~n"),
+    S5000 = lists:duplicate(5000, $a),
+    ed_timing_measurements(S5000, lists:duplicate(5000, $b), 100),
+
+    io:format("~n=== Timing suite complete ===~n"),
+    ok.
+
+ed_timing_suite_tilesize() ->
+    S5000a = lists:duplicate(5000, $a),
+    S5000b = lists:duplicate(5000, $b),
+
+    io:format("~n=== Testing with 5000 char strings, varied tilewidth ===~n"),
+    io:format("~n=== Test 1: Tile Width 2 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 2),
+
+    io:format("~n=== Test 2: Tile Width 5 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 5),
+
+    io:format("~n=== Test 3: Tile Width 10 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 10),
+
+    io:format("~n=== Test 4: Tile Width 20 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 20),
+
+    io:format("~n=== Test 5: Tile Width 40 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 40),
+
+    io:format("~n=== Test 6: Tile Width 80 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 80),
+
+    io:format("~n=== Test 7: Tile Width 160 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 160),
+
+    io:format("~n=== Test 8: Tile Width 250 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 250),
+
+    io:format("~n=== Test 9: Tile Width 500 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 500),
+
+    io:format("~n=== Test 10: Tile Width 1000 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 1000),
+
+    io:format("~n=== Test 11: Tile Width 2500 ===~n"),
+    ed_timing_measurements(S5000a, S5000b, 2500),
 
     io:format("~n=== Timing suite complete ===~n"),
     ok.
