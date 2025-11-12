@@ -47,7 +47,23 @@ ed_par(S1, S2, OpCosts, NW, TileWidth) when
 ->
     LeftCol = segment_list(string_to_strcost(S1, OpCosts), TileWidth),
     TopRow = segment_list(string_to_strcost(S2, OpCosts), TileWidth),
-    ok.
+    Chain = chain_create(NW, fun chain_worker_init/1),
+    chain_send(Chain, {OpCosts, LeftCol}),
+    chain_send_master(Chain, TopRow),
+    chain_receive_master(Chain, length(TopRow)).
+
+chain_send_master(Chain, []) ->
+    ok;
+chain_send_master(Chain, [TopRow_Hd | TopRow_Tl]) ->
+    chain_send(Chain, TopRow_Hd),
+    chain_send_master(Chain, TopRow_Tl).
+
+chain_receive_master(Chain, 1) ->
+    % return last element of list, second element of tuple
+    element(2, lists:last(chain_receive(Chain)));
+chain_receive_master(Chain, X) ->
+    chain_receive(Chain),
+    chain_receive_master(Chain, X - 1).
 
 % Claude 4.5 generated helper
 % creates overlapping segments (size 1 overlap)
@@ -57,6 +73,23 @@ segment_list([_ | _] = List, Size) ->
     Segment = lists:sublist(List, Size),
     Rest = lists:nthtail(Size - 1, List),
     [Segment | segment_list(Rest, Size)].
+
+chain_worker_init(Chain) ->
+    {OpCosts, LeftCol} = chain_receive(Chain),
+    chain_worker_init_helper(Chain, OpCosts, LeftCol).
+chain_worker_init_helper(Chain, OpCosts, [LeftCol_Hd]) ->
+    % last worker in chain, do not send info back to master
+    % stops the master from blocking
+    chain_worker_stable(Chain, OpCosts, LeftCol_Hd);
+chain_worker_init_helper(Chain, OpCosts, [LeftCol_Hd | LeftCol_Tl]) ->
+    % more workers in the chain, pass along LeftCol_Tl
+    chain_send(Chain, {OpCosts, LeftCol_Tl}),
+    chain_worker_stable(Chain, OpCosts, LeftCol_Hd).
+chain_worker_stable(Chain, OpCosts, LeftCol) ->
+    TopRow = chain_receive(Chain),
+    {RightCol, BottomRow} = ed_tile(LeftCol, TopRow, OpCosts),
+    chain_send(Chain, BottomRow),
+    chain_worker_stable(Chain, OpCosts, RightCol).
 
 % Implementation notes (from Mark):
 %   Please delete these notes when you have completed your implementation.
