@@ -8,8 +8,6 @@
 -export([bubble_test/1, odd_even_test/1, sort_test/2]).
 -export([sortv/1, sortv/2, ik/1, ijk/1]).
 
--export([ed_timing_suite_length/0, ed_timing_suite_tilesize/0]).
-
 -include_lib("eunit/include/eunit.hrl").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -47,20 +45,31 @@ ed_par(S1, S2, OpCosts, NW, TileWidth) when
     is_integer(TileWidth),
     TileWidth >= 1
 ->
-    LeftCol = segment_list(string_to_strcost(S1, OpCosts), TileWidth + 1),
+    % Ensure the chain is not longer than length(S1)
+    % As this implementation is dependent on breaking the grid into rows for workers
+    TileHeight = min(ceil(length(S1) / NW), length(S1)),
+    LeftCol = segment_list(string_to_strcost(S1, OpCosts), TileHeight + 1),
     TopRow = segment_list(string_to_strcost(S2, OpCosts), TileWidth + 1),
-    Chain = chain_create(NW, fun chain_worker_init/1),
+    % Initialize Chain to size length(LefCol) in case
+    % there were more workers specified than potential tile rows
+    Chain = chain_create(length(LeftCol), fun chain_worker_init/1),
+    % initialize the chain with opcosts and there respective LeftCol
     chain_send(Chain, {OpCosts, LeftCol}),
     chain_send_master(Chain, TopRow),
     chain_exit(Chain),
     chain_receive_master(Chain, length(TopRow)).
 
+% Sends the top row of the grid to the first worker (in tiled chunks)
 chain_send_master(_Chain, []) ->
     ok;
 chain_send_master(Chain, [TopRow_Hd | TopRow_Tl]) ->
     chain_send(Chain, TopRow_Hd),
     chain_send_master(Chain, TopRow_Tl).
 
+% Receive length of TopRow (# of tile cols) messages from last worker
+% Only the final message contains the ed_tile bottom row result
+% from the bottom right of the grid...
+% This contains final value (last element of list - tuple element 2).
 chain_receive_master(Chain, 1) ->
     % return last element of list, second element of tuple
     element(2, lists:last(chain_receive(Chain)));
@@ -77,111 +86,128 @@ segment_list([_ | _] = List, Size) ->
     Rest = lists:nthtail(Size - 1, List),
     [Segment | segment_list(Rest, Size)].
 
+% Receive OpCosts and LeftCol from Chain prev
 chain_worker_init(Chain) ->
     {OpCosts, LeftCol} = chain_receive(Chain),
     chain_worker_init_helper(Chain, OpCosts, LeftCol).
+
+% Last worker in chain, do not send info back to master
+% Stops the master from blocking
 chain_worker_init_helper(Chain, OpCosts, [LeftCol_Hd]) ->
-    % last worker in chain, do not send info back to master
-    % stops the master from blocking
     chain_worker_stable(Chain, OpCosts, LeftCol_Hd);
+% More workers in the chain, pass along LeftCol_Tl
 chain_worker_init_helper(Chain, OpCosts, [LeftCol_Hd | LeftCol_Tl]) ->
-    % more workers in the chain, pass along LeftCol_Tl
     chain_send(Chain, {OpCosts, LeftCol_Tl}),
     chain_worker_stable(Chain, OpCosts, LeftCol_Hd).
+
+% Worker awaits Chain prev's bottom row (the workers TopRow...)
+% Once it receives it it calcs {RightCol, BottomRow},
+% communicates with chain next, then finally recurses along its row
 chain_worker_stable(Chain, OpCosts, LeftCol) ->
     TopRow = chain_receive(Chain),
     {RightCol, BottomRow} = ed_tile(LeftCol, TopRow, OpCosts),
     chain_send(Chain, BottomRow),
     chain_worker_stable(Chain, OpCosts, RightCol).
 
-ed_timing_suite_length() ->
-    io:format("~n=== Test 1: Short strings (5 chars) ===~n"),
-    ed_timing_measurements("hello", "world", 3),
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                          %
+% EUnit Tests for Q2 - Edit Distance Parallel vs Sequential               %
+%                                                                          %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    io:format("~n=== Test 2: Medium strings (100 chars) ===~n"),
-    S100 = lists:duplicate(100, $a),
-    ed_timing_measurements(S100, lists:duplicate(100, $b), 10),
+% Partially generated Claude4.5 Eunit test cases
+% Test that parallel and sequential versions produce the same result
+ed_par_test_() ->
+    [
+        {"Short strings - hello/world",
+            ?_test(begin
+                Seq = hw5_lib:ed_seq("hello", "world", default_op_costs()),
+                Par = ed_par("hello", "world", 2, 3),
+                ?assertEqual(Seq, Par)
+            end)},
 
-    io:format("~n=== Test 3: Longer strings (500 chars) ===~n"),
-    S500 = lists:duplicate(500, $a),
-    ed_timing_measurements(S500, lists:duplicate(500, $b), 20),
+        {"Short strings - hello/world - TileWidth 1, NW 1",
+            ?_test(begin
+                Seq = hw5_lib:ed_seq("hello", "world", default_op_costs()),
+                Par = ed_par("hello", "world", 1, 1),
+                ?assertEqual(Seq, Par)
+            end)},
 
-    io:format("~n=== Test 4: Long strings (1000 chars) ===~n"),
-    S1000 = lists:duplicate(1000, $a),
-    ed_timing_measurements(S1000, lists:duplicate(1000, $b), 50),
+        {"Short strings - hello/world - TileWidth greater than S2 length",
+            ?_test(begin
+                Seq = hw5_lib:ed_seq("hello", "world", default_op_costs()),
+                Par = ed_par("hello", "world", 1, 10),
+                ?assertEqual(Seq, Par)
+            end)},
 
-    io:format("~n=== Test 5: Very long strings (2000 chars) ===~n"),
-    S2000 = lists:duplicate(2000, $a),
-    ed_timing_measurements(S2000, lists:duplicate(2000, $b), 100),
+        {"Short strings - hello/world - NW greater than S1 length",
+            ?_test(begin
+                Seq = hw5_lib:ed_seq("hello", "world", default_op_costs()),
+                Par = ed_par("hello", "world", 10, 1),
+                ?assertEqual(Seq, Par)
+            end)},
 
-    io:format("~n=== Test 6: Ext long strings (5000 chars) ===~n"),
-    S5000 = lists:duplicate(5000, $a),
-    ed_timing_measurements(S5000, lists:duplicate(5000, $b), 100),
+        {"Short strings - hello/world - NW greater than S1 length and TileWidth greater than S2 length",
+            ?_test(begin
+                Seq = hw5_lib:ed_seq("hello", "world", default_op_costs()),
+                Par = ed_par("hello", "world", 10, 10),
+                ?assertEqual(Seq, Par)
+            end)},
 
-    io:format("~n=== Timing suite complete ===~n"),
-    ok.
+        {"Medium strings - 100 chars",
+            ?_test(begin
+                S1 = lists:duplicate(100, $a),
+                S2 = lists:duplicate(100, $b),
+                Seq = hw5_lib:ed_seq(S1, S2, default_op_costs()),
+                Par = ed_par(S1, S2, 10, 10),
+                ?assertEqual(Seq, Par)
+            end)},
 
-ed_timing_suite_tilesize() ->
-    S5000a = lists:duplicate(5000, $a),
-    S5000b = lists:duplicate(5000, $b),
+        {"Longer strings - 500 chars",
+            ?_test(begin
+                S1 = lists:duplicate(500, $a),
+                S2 = lists:duplicate(500, $b),
+                Seq = hw5_lib:ed_seq(S1, S2, default_op_costs()),
+                Par = ed_par(S1, S2, 25, 20),
+                ?assertEqual(Seq, Par)
+            end)},
 
-    io:format("~n=== Testing with 5000 char strings, varied tilewidth ===~n"),
-    io:format("~n=== Test 1: Tile Width 2 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 2),
+        {"Different tile sizes - 100 chars, tile 5",
+            ?_test(begin
+                S1 = lists:duplicate(100, $a),
+                S2 = lists:duplicate(100, $b),
+                Seq = hw5_lib:ed_seq(S1, S2, default_op_costs()),
+                Par = ed_par(S1, S2, 20, 5),
+                ?assertEqual(Seq, Par)
+            end)},
 
-    io:format("~n=== Test 2: Tile Width 5 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 5),
+        {"Different tile sizes - 100 chars, tile 20",
+            ?_test(begin
+                S1 = lists:duplicate(100, $a),
+                S2 = lists:duplicate(100, $b),
+                Seq = hw5_lib:ed_seq(S1, S2, default_op_costs()),
+                Par = ed_par(S1, S2, 5, 20),
+                ?assertEqual(Seq, Par)
+            end)},
 
-    io:format("~n=== Test 3: Tile Width 10 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 10),
+        {"Different worker counts - 200 chars, 4 workers",
+            ?_test(begin
+                S1 = lists:duplicate(200, $a),
+                S2 = lists:duplicate(200, $b),
+                Seq = hw5_lib:ed_seq(S1, S2, default_op_costs()),
+                Par = ed_par(S1, S2, 4, 50),
+                ?assertEqual(Seq, Par)
+            end)},
 
-    io:format("~n=== Test 4: Tile Width 20 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 20),
-
-    io:format("~n=== Test 5: Tile Width 40 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 40),
-
-    io:format("~n=== Test 6: Tile Width 80 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 80),
-
-    io:format("~n=== Test 7: Tile Width 160 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 160),
-
-    io:format("~n=== Test 8: Tile Width 250 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 250),
-
-    io:format("~n=== Test 9: Tile Width 500 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 500),
-
-    io:format("~n=== Test 10: Tile Width 1000 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 1000),
-
-    io:format("~n=== Test 11: Tile Width 2500 ===~n"),
-    ed_timing_measurements(S5000a, S5000b, 2500),
-
-    io:format("~n=== Timing suite complete ===~n"),
-    ok.
-
-% String 1, String 2, TileSize (Generates NW based on String1 length)
-ed_timing_measurements(S1, S2, TileSize) ->
-    Seq = time_it:t(fun() -> hw5_lib:ed_seq(S1, S2, hw5_lib:default_op_costs()) end),
-    NW = ceil(length(S1) / TileSize),
-    Par = time_it:t(fun() -> hw5:ed_par(S2, S2, NW, TileSize) end),
-    SeqMean = proplists:get_value(mean, Seq),
-    SeqStd = proplists:get_value(std, Seq),
-    io:format("Sequential: mean = ~.6f s", [SeqMean]),
-    case SeqStd of
-        undefined -> io:format(" (std = N/A)~n");
-        _ -> io:format(", std = ~.6f s~n", [SeqStd])
-    end,
-    ParMean = proplists:get_value(mean, Par),
-    ParStd = proplists:get_value(std, Par),
-    io:format("Parallel: mean = ~.6f s", [ParMean]),
-    case SeqStd of
-        undefined -> io:format(" (std = N/A)~n");
-        _ -> io:format(", std = ~.6f s~n", [ParStd])
-    end,
-    ok.
+        {"Different worker counts - 200 chars, 10 workers",
+            ?_test(begin
+                S1 = lists:duplicate(200, $a),
+                S2 = lists:duplicate(200, $b),
+                Seq = hw5_lib:ed_seq(S1, S2, default_op_costs()),
+                Par = ed_par(S1, S2, 10, 20),
+                ?assertEqual(Seq, Par)
+            end)}
+    ].
 
 % Implementation notes (from Mark):
 %   Please delete these notes when you have completed your implementation.

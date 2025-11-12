@@ -34,3 +34,11 @@ The problem is almost always defined using three basic, "unit-cost" operations (
     Substitution: Replacing one character with another.
 
         Example: "book" → "look" (1 substitution)
+
+## Timing
+
+```erlang
+time_it:t(fun() -> hw5_lib:ed_seq("hello", "world", hw5_lib:default_op_costs()) end).
+
+time_it:t(fun() -> hw5:ed_par("hello", "world", 3, 3) end).
+```
