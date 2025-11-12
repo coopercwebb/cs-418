@@ -8,6 +8,8 @@
 -export([bubble_test/1, odd_even_test/1, sort_test/2]).
 -export([sortv/1, sortv/2, ik/1, ijk/1]).
 
+-export([ed_timing_suite/0]).
+
 -include_lib("eunit/include/eunit.hrl").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -45,14 +47,15 @@ ed_par(S1, S2, OpCosts, NW, TileWidth) when
     is_integer(TileWidth),
     TileWidth >= 1
 ->
-    LeftCol = segment_list(string_to_strcost(S1, OpCosts), TileWidth),
-    TopRow = segment_list(string_to_strcost(S2, OpCosts), TileWidth),
+    LeftCol = segment_list(string_to_strcost(S1, OpCosts), TileWidth + 1),
+    TopRow = segment_list(string_to_strcost(S2, OpCosts), TileWidth + 1),
     Chain = chain_create(NW, fun chain_worker_init/1),
     chain_send(Chain, {OpCosts, LeftCol}),
     chain_send_master(Chain, TopRow),
+    chain_exit(Chain),
     chain_receive_master(Chain, length(TopRow)).
 
-chain_send_master(Chain, []) ->
+chain_send_master(_Chain, []) ->
     ok;
 chain_send_master(Chain, [TopRow_Hd | TopRow_Tl]) ->
     chain_send(Chain, TopRow_Hd),
@@ -90,6 +93,55 @@ chain_worker_stable(Chain, OpCosts, LeftCol) ->
     {RightCol, BottomRow} = ed_tile(LeftCol, TopRow, OpCosts),
     chain_send(Chain, BottomRow),
     chain_worker_stable(Chain, OpCosts, RightCol).
+
+ed_timing_suite() ->
+    % Short test - should be very fast
+    io:format("~n=== Test 1: Short strings (5 chars) ===~n"),
+    ed_timing_measurements("hello", "world", 3),
+
+    % Medium test - around 100 chars
+    io:format("~n=== Test 2: Medium strings (100 chars) ===~n"),
+    S100 = lists:duplicate(100, $a),
+    ed_timing_measurements(S100, lists:duplicate(100, $b), 10),
+
+    % Longer test - around 500 chars
+    io:format("~n=== Test 3: Longer strings (500 chars) ===~n"),
+    S500 = lists:duplicate(500, $a),
+    ed_timing_measurements(S500, lists:duplicate(500, $b), 20),
+
+    % Long test - around 1000 chars (should take > 1 second)
+    io:format("~n=== Test 4: Long strings (1000 chars) ===~n"),
+    S1000 = lists:duplicate(1000, $a),
+    ed_timing_measurements(S1000, lists:duplicate(1000, $b), 50),
+
+    % Very long test - around 2000 chars (should take several seconds)
+    io:format("~n=== Test 5: Very long strings (2000 chars) ===~n"),
+    S2000 = lists:duplicate(2000, $a),
+    ed_timing_measurements(S2000, lists:duplicate(2000, $b), 100),
+
+    io:format("~n=== Timing suite complete ===~n"),
+    ok.
+
+% String 1, String 2, TileSize (Generates NW based on String1 length)
+ed_timing_measurements(S1, S2, TileSize) ->
+    Seq = time_it:t(fun() -> hw5_lib:ed_seq(S1, S2, hw5_lib:default_op_costs()) end),
+    NW = ceil(length(S1) / TileSize),
+    Par = time_it:t(fun() -> hw5:ed_par(S2, S2, NW, TileSize) end),
+    SeqMean = proplists:get_value(mean, Seq),
+    SeqStd = proplists:get_value(std, Seq),
+    io:format("Sequential: mean = ~.6f s", [SeqMean]),
+    case SeqStd of
+        undefined -> io:format(" (std = N/A)~n");
+        _ -> io:format(", std = ~.6f s~n", [SeqStd])
+    end,
+    ParMean = proplists:get_value(mean, Par),
+    ParStd = proplists:get_value(std, Par),
+    io:format("Parallel: mean = ~.6f s", [ParMean]),
+    case SeqStd of
+        undefined -> io:format(" (std = N/A)~n");
+        _ -> io:format(", std = ~.6f s~n", [ParStd])
+    end,
+    ok.
 
 % Implementation notes (from Mark):
 %   Please delete these notes when you have completed your implementation.
