@@ -45,13 +45,13 @@ ed_par(S1, S2, OpCosts, NW, TileWidth) when
     is_integer(TileWidth),
     TileWidth >= 1
 ->
-    LeftCol = segment_list(string_to_strcost(S1, OpCosts), TileWidth),
-    TopRow = segment_list(string_to_strcost(S2, OpCosts), TileWidth),
+    LeftCol = segment_list(string_to_strcost(S1, OpCosts), TileWidth + 1),
+    TopRow = segment_list(string_to_strcost(S2, OpCosts), TileWidth + 1),
     Chain = chain_create(NW, fun start_chain_worker/1),
     start_chain(Chain, OpCosts, LeftCol, TopRow),
-    X = chain_receive(Chain),
+    FinalDistance = chain_receive(Chain),
     chain_exit(Chain),
-    ok.
+    FinalDistance.
 
 % Claude 4.5 generated helper
 % creates overlapping segments (size 1 overlap)
@@ -66,8 +66,8 @@ start_chain(Chain, OpCosts, LeftCol, [TopRow_Hd | TopRow_Tl]) ->
     chain_send(Chain, {OpCosts, LeftCol, TopRow_Hd}),
     continue_chain_master(Chain, TopRow_Tl).
 
-continue_chain_master(_Chain, []) ->
-    ok;
+continue_chain_master(Chain, []) ->
+    chain_send(Chain, done);
 continue_chain_master(Chain, [TopRow_Hd | TopRow_Tl]) ->
     chain_send(Chain, TopRow_Hd),
     continue_chain_master(Chain, TopRow_Tl).
@@ -78,14 +78,29 @@ start_chain_worker(Chain) ->
     % initial parameters
     {OpCosts, [LeftCol_Hd | LeftCol_Tl], TopRow} = chain_receive(Chain),
     {RightCol, BottomRow} = ed_tile(LeftCol_Hd, TopRow, OpCosts),
+    % Determine if this is the last row
+    IsLastRow = (LeftCol_Tl == []),
     chain_send(Chain, {OpCosts, LeftCol_Tl, BottomRow}),
-    continue_chain_worker(Chain, OpCosts, RightCol).
+    continue_chain_worker(Chain, OpCosts, RightCol, IsLastRow).
 
-continue_chain_worker(Chain, OpCosts, LeftCol) ->
+continue_chain_worker(Chain, OpCosts, LeftCol, IsLastRow) ->
     TopRow = chain_receive(Chain),
-    {RightCol, BottomRow} = ed_tile(LeftCol, TopRow, OpCosts),
-    chain_send(Chain, BottomRow),
-    continue_chain_worker(Chain, OpCosts, RightCol).
+    case TopRow of
+        done ->
+            if
+                IsLastRow ->
+                    % Last row: send final cost back to master
+                    FinalCost = element(2, lists:last(LeftCol)),
+                    chain_send(Chain, FinalCost);
+                true ->
+                    % Not last row: just propagate done to next worker
+                    chain_send(Chain, done)
+            end;
+        _ ->
+            {RightCol, BottomRow} = ed_tile(LeftCol, TopRow, OpCosts),
+            chain_send(Chain, BottomRow),
+            continue_chain_worker(Chain, OpCosts, RightCol, IsLastRow)
+    end.
 
 % Implementation notes (from Mark):
 %   Please delete these notes when you have completed your implementation.
