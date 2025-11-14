@@ -365,9 +365,21 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                     odd-even transposition sort networks with \code{N} inputs:
                     \begin{enumerate}
                         \item (\textbf{2 points}) What is the work for \code{bubble(N)}?
+                              \begin{answer}
+                                  $\frac{n(n-1)}{2}$
+                              \end{answer}
                         \item (\textbf{2 points}) What is the span for \code{bubble(N)}?
+                              \begin{answer}
+                                  2n - 3
+                              \end{answer}
                         \item (\textbf{2 points}) What is the work for \code{odd\_even(N)}?
+                              \begin{answer}
+                                  $\frac{n(n-1)}{2}$
+                              \end{answer}
                         \item (\textbf{2 points}) What is the span for \code{odd\_even(N)}?\label{q:sort.ws.span-oe}
+                              \begin{answer}
+                                  n
+                              \end{answer}
                     \end{enumerate}
                     Hint: if you prefer coding to pencil-and-paper derivation,
                     you can get a lot of ``hints'' by experimenting with the code in \erltemplate{}.
@@ -380,11 +392,17 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                                   \lim_{\code{\scriptsize{N}} \rightarrow \infty}
                                   \frac{\mathsf{Work}(\code{\scriptsize{bubble{N}}})}{\mathsf{Work}(\code{\scriptsize{odd\_even{N}}})}
                               \end{math}
+                              \begin{answer}
+                                  1
+                              \end{answer}
                         \item (\textbf{2 points}): What is
                               \begin{math}
                                   \lim_{\code{\scriptsize{N}} \rightarrow \infty}
                                   \frac{\mathsf{Span}(\code{\scriptsize{bubble{N}}})}{\mathsf{Span}(\code{\scriptsize{odd\_even{N}}})}
                               \end{math}
+                              \begin{answer}
+                                  2
+                              \end{answer}
                     \end{enumerate}\setcounter{saveenumii}{\value{enumii}}
           \end{enumerate}
 
