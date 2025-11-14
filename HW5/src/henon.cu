@@ -33,7 +33,30 @@
 __global__ void henon32(float *x0, float *y0, float *s2, float *s4,
                         uint n_data, uint n_iter, float a, float b)
 {
-    // TODO: you need to write thiss
+    // TODO: you need to write this
+    uint myId = blockDim.x * blockIdx.x + threadIdx.x;
+    if (myId < n_data)
+    {
+        float x_curr = x0[myId];
+        float y_curr = y0[myId];
+        float sum_d2 = 0.0;
+        float sum_d4 = 0.0;
+        for (uint i = 0; i < n_iter; i++)
+        {
+            // Iterate the recurrence on this element.
+            float x_next = 1.0f - a * x_curr * x_curr + y_curr;
+            float y_next = b * x_curr;
+            float dx = x_next - x_curr;
+            float dy = y_next - y_curr;
+            float d2 = dx * dx + dy * dy;
+            sum_d2 += d2;
+            sum_d4 += d2 * d2;
+            x_curr = x_next;
+            y_curr = y_next;
+        }
+        s2[myId] = sum_d2;
+        s4[myId] = sum_d4;
+    }
 }
 
 // henon64: the henon recurrence computing with 64-bit floating point
@@ -80,7 +103,7 @@ double henon_gpu(void *x0, void *y0, void *s2, void *s4,
     cudaTry(cudaMemcpy(d_y0, y0, sz, cudaMemcpyHostToDevice));
 
     // Calculate the recurrence.
-    getrusage(RUSAGE_SELF, &r0); // push the "stop button" on our stopwatch
+    getrusage(RUSAGE_SELF, &r0); // push the "start button" on our stopwatch
     if (elem_size == 4)
         henon32<<<n_blocks, threads_per_block>>>((float *)d_x0, (float *)d_y0, (float *)d_s2, (float *)d_s4,
                                                  n_data, n_iter, (float)a, (float)b);
