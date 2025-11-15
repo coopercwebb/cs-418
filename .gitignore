@@ -25,7 +25,6 @@
 *.figlist
 *.makefile
 *.auxlock
-*.pdf
 
 # LaTeX build directories
 _build/

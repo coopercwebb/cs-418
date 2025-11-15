@@ -8,6 +8,7 @@
 \usepackage{color}
 \usepackage{epsfig}
 \usepackage{arydshln}
+\usepackage{float}
 \usepackage{hyperref}
 \setlength{\oddsidemargin}{0in}\setlength{\textwidth}{6.5in}
 \setlength{\topmargin}{0.0in}\setlength{\textheight}{8.5in}
@@ -167,12 +168,22 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                         \item (\textbf{2 points}) If all elements of \code{op} are the same,
                               for example \code{op[i] = 0} for all \code{0 <= i < n}, what fraction of the
                               \code{op[i + (acc \& y)]} branches will be predicted correctly?
+                              \begin{answer}
+                                  $\frac{n-8}{n-7}$ assuming the first branch mispredicts (most common case), or $1$ if the first branch happens to predict correctly by chance.
+
+                                  Since all elements of \code{op} are the same, the switch statement always goes to the same case. The predictor will mispredict on the first iteration (no history), but correctly predict all subsequent $n-8$ iterations.
+                              \end{answer}
                         \item (\textbf{3 points}) If the elements of \code{op} are uniformly random with
                               \code{0 <= op[i] < 8} for all \code{0 <= i < n}, what fraction of the
                               \code{op[i + (acc \& y)]} branches will be predicted correctly?
                               \par
                               Note: this is only an approximation because there is some correlation of
                               \code{acc \& 7} and \code{prev \& 7}.  We will ignore that.
+                              \begin{answer}
+                                  $\frac{1}{8}$
+
+                                  Since \code{acc} is effectively random and \code{acc \& 7} produces values from 0 to 7, we access uniformly random elements of \code{op}. Each element randomly selects one of 8 cases. The predictor assumes the same case as the previous iteration, giving a $\frac{1}{8}$ chance of a correct prediction.
+                              \end{answer}
                     \end{enumerate}
 
               \item (\textbf{15 points})
@@ -202,9 +213,37 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                     \begin{enumerate}
                         \item (\textbf{5 points}) Include a table of your raw timing data for your answers to this the remaining
                               parts of this question.
+                              \begin{answer}
+                                  \begin{center}
+                                      \begin{tabular}{|l|c|c|c|}
+                                          \hline
+                                          \textbf{Distribution} & \textbf{n\_op} & \textbf{Mean Time (s)}  & \textbf{Std Dev (s)}    \\
+                                          \hline
+                                          const0                & 1000           & $1.4307 \times 10^{-6}$ & $1.1703 \times 10^{-7}$ \\
+                                          \hline
+                                          rand                  & 1000           & $6.7281 \times 10^{-6}$ & $2.0516 \times 10^{-6}$ \\
+                                          \hline
+                                      \end{tabular}
+                                  \end{center}
+
+                                  Parameters: n\_trials=100, runs\_per\_trial=10000, executed on thetis.students.cs.ubc.ca
+                              \end{answer}
                         \item (\textbf{5 points}) By running \texttt{./op} with random and constant distributions for the elements
                               of \code{op}, determine the branch mispredict penalty, in nanoseconds,
                               for executions on \code{gambier} or \code{thetis}.
+                              \begin{answer}
+                                  Total time difference: $(6.7281 - 1.4307) \times 10^{-6} = 5.2974 \times 10^{-6}$ seconds $= 5297.4$ nanoseconds
+
+                                  Number of loop iterations: $n - 7 = 1000 - 7 = 993$
+
+                                  Mispredictions with const0: $\approx 1$ (first iteration only)
+
+                                  Mispredictions with rand: $993 \times \frac{7}{8} \approx 869$
+
+                                  Additional mispredictions with rand: $869 - 1 = 868$
+
+                                  \textbf{Branch mispredict penalty:} $\frac{5297.4 \text{ ns}}{868} \approx \textbf{6.1 nanoseconds}$
+                              \end{answer}
                         \item (\textbf{5 points}) The Intel Xeon E5-2698 v3 processors in \texttt{thetis} and \texttt{gambier}
                               have a base CPU clock frequency of 2.3GHz and a boost-clock frequency of 3.6GHz.
                               How many clock-cycles is the branch-mispredict penalty if the CPU is operating at the base clock?
@@ -212,6 +251,10 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                               \par
                               If \texttt{thetis} or \texttt{gambier} is lightly loaded, you should see the boost-clock
                               performance, but I'm not absolutely certain of that.
+                              \begin{answer}
+                                  base clock: $(\frac{6.1ns}{10^9 ns/s}) \cdot (2.3 \cdot 10^9 cycles / s)$ = 14.03 $\approx$ 14 cycle branch-mispredict penalty \\
+                                  boost clock: $(\frac{6.1ns}{10^9 ns/s}) \cdot (3.6 \cdot 10^9 cycles / s)$ = 21.96 $\approx$ 22 cycle branch-mispredict penalty \\
+                              \end{answer}
                     \end{enumerate}
 
               \item (\textbf{5 points})
@@ -227,6 +270,14 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                     because the x86 instruct set only has eight programmer visible registers.
                     The ROP count might be closer to 9 to 12 operations per loop iteration,
                     but I don't know of a way to check the details.
+
+                    \begin{answer}
+                        Number of loop iterations: $n - 7 = 1000 - 7 = 993$ \\
+                        993 loops * 16 instructions / loop = 15888 total instructions \\
+                        const: $\frac{15888 ins}{(3.6 \cdot 10^9 cycles/s) \cdot 1.4307 \times 10^{-6}s}$ = 3.085 ins / cycle \\
+                        rand: $\frac{15888 ins}{(3.6 \cdot 10^9 cycles/s) \cdot 6.7281 \times 10^{-6}s}$ = 0.656 ins / cycle
+                    \end{answer}
+
           \end{enumerate}
 
 
@@ -333,7 +384,7 @@ Your solution should have three files file: \texttt{hw5.pdf}.
           \end{enumerate}
 
 
-          \begin{figure}\begin{center}
+          \begin{figure}[H]\begin{center}
                   \includegraphics[height=3cm]{figs/sort.pdf}
                   \caption{Sorting networks for a linear array}\label{fig:sort}
               \end{center}\end{figure}.
@@ -682,6 +733,9 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                     While there are other values that achieve maximize performance to the same value
                     as with \code{threads\_per\_block=1024} (within measurement error),
                     I didn't find any that were faster.  Feel free to try your own experiments.
+                    \begin{answer}
+                        \input{../src/henon_results}
+                    \end{answer}
               \item \textbf{(5 points)}
                     You should observe that
                     \begin{displaymath}
