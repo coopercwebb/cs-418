@@ -63,7 +63,30 @@ __global__ void henon32(float *x0, float *y0, float *s2, float *s4,
 __global__ void henon64(double *x0, double *y0, double *s2, double *s4,
                         uint n_data, uint n_iter, double a, double b)
 {
-    // TODO: you need to write this
+
+    uint myId = blockDim.x * blockIdx.x + threadIdx.x;
+    if (myId < n_data)
+    {
+        double x_curr = x0[myId];
+        double y_curr = y0[myId];
+        double sum_d2 = 0.0;
+        double sum_d4 = 0.0;
+        for (uint i = 0; i < n_iter; i++)
+        {
+            // Iterate the recurrence on this element.
+            double x_next = 1.0 - a * x_curr * x_curr + y_curr;
+            double y_next = b * x_curr;
+            double dx = x_next - x_curr;
+            double dy = y_next - y_curr;
+            double d2 = dx * dx + dy * dy;
+            sum_d2 += d2;
+            sum_d4 += d2 * d2;
+            x_curr = x_next;
+            y_curr = y_next;
+        }
+        s2[myId] = sum_d2;
+        s4[myId] = sum_d4;
+    }
 }
 
 // henon_gpu: wrapper for launching a CUDA kernel to compute the Hénon map.
@@ -167,7 +190,30 @@ void henon_cpu32(float *x0, float *y0, float *s2, float *s4,
 void henon_cpu64(double *x0, double *y0, double *s2, double *s4,
                  uint n_data, uint n_iter, double a, double b)
 {
-    // TODO: you need to write this
+
+    for (uint j = 0; j < n_data; j++)
+    {
+        // Iterate over elements of the input array.
+        double x_curr = x0[j];
+        double y_curr = y0[j];
+        double sum_d2 = 0.0;
+        double sum_d4 = 0.0;
+        for (uint i = 0; i < n_iter; i++)
+        {
+            // Iterate the recurrence on this element.
+            double x_next = 1.0 - a * x_curr * x_curr + y_curr;
+            double y_next = b * x_curr;
+            double dx = x_next - x_curr;
+            double dy = y_next - y_curr;
+            double d2 = dx * dx + dy * dy;
+            sum_d2 += d2;
+            sum_d4 += d2 * d2;
+            x_curr = x_next;
+            y_curr = y_next;
+        }
+        s2[j] = sum_d2;
+        s4[j] = sum_d4;
+    }
 }
 
 double henon_cpu(void *x0, void *y0, void *s2, void *s4,

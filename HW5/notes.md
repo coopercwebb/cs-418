@@ -163,3 +163,49 @@ GPU, n_blocks=100, tpb=1024, n_iter= 1000000, single-precision, time elapsed: me
 webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 1000000 5 4
 GPU: rms-step-size = 1.699, var = 2.663
 GPU, n_blocks=100, tpb=1024, n_iter= 1000000, single-precision, time elapsed: mean =        0.132, stdev =    0.0003768
+
+### henon gpu64
+
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000 5 8
+GPU: rms-step-size = 1.698, var = 2.663
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, double-precision, time elapsed: mean =      0.09309, stdev =     0.003185
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000 5 8
+GPU: rms-step-size = 1.698, var = 2.663
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, double-precision, time elapsed: mean =      0.09202, stdev =     0.003131
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000 5 8
+GPU: rms-step-size = 1.698, var = 2.663
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, double-precision, time elapsed: mean =      0.09382, stdev =      0.00361
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000 5 8
+GPU: rms-step-size = 1.698, var = 2.663
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, double-precision, time elapsed: mean =      0.08962, stdev =    0.0003454
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000 5 8
+GPU: rms-step-size = 1.698, var = 2.663
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, double-precision, time elapsed: mean =      0.08997, stdev =    8.804e-05
+
+### henon cpu64
+
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 1000  5 8
+CPU: rms-step-size = 1.650, var = 2.674
+CPU: n_data=102400, n_iter=    1000, t_elapsed=       0.319
+GPU: rms-step-size = 1.650, var = 2.674
+GPU, n_blocks=100, tpb=1024, n_iter=    1000, double-precision, time elapsed: mean =     0.009652, stdev =    0.0003108
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 1000  5 8
+CPU: rms-step-size = 1.650, var = 2.674
+CPU: n_data=102400, n_iter=    1000, t_elapsed=      0.3131
+GPU: rms-step-size = 1.650, var = 2.674
+GPU, n_blocks=100, tpb=1024, n_iter=    1000, double-precision, time elapsed: mean =     0.009482, stdev =      0.00032
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000  5 8
+CPU: rms-step-size = 1.698, var = 2.663
+CPU: n_data=102400, n_iter=   10000, t_elapsed=       3.187
+GPU: rms-step-size = 1.698, var = 2.663
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, double-precision, time elapsed: mean =      0.09173, stdev =     0.002729
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000  5 8
+CPU: rms-step-size = 1.698, var = 2.663
+CPU: n_data=102400, n_iter=   10000, t_elapsed=       3.179
+GPU: rms-step-size = 1.698, var = 2.663
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, double-precision, time elapsed: mean =      0.09199, stdev =     0.003007
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000  5 8
+CPU: rms-step-size = 1.698, var = 2.663
+CPU: n_data=102400, n_iter=   10000, t_elapsed=       3.174
+GPU: rms-step-size = 1.698, var = 2.663
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, double-precision, time elapsed: mean =      0.09381, stdev =     0.003604
