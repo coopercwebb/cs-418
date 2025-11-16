@@ -107,3 +107,13 @@ Speedup: 1.28x
 
 === Timing suite complete ===
 ```
+
+## Question 2.b - Parallel Implementation Explanation
+
+**Parallel Edit Distance Implementation:**
+
+This implementation divides the edit distance dynamic programming tableau into rectangular tiles and processes them using a chain of worker processes. The tableau is partitioned horizontally into rows of tiles, where each row has a height of `TileHeight` and each tile within a row has a width of `TileWidth`. The chain length is determined by the number of tile rows needed to cover string S1, with a maximum of `NW` workers.
+
+The key insight (as provided by the hint), is that tiles overlap at their boundaries: the right column of one tile becomes the left column of its right neighbor, and the bottom row of one tile becomes the top row of the tile below it. The `segment_list/2` helper function creates these overlapping segments from the input strings. Each worker in the chain is responsible for computing one horizontal row of tiles. Workers use the `hw5_lib:ed_tile/3` function to compute individual tiles, receiving their top row from the previous worker in the chain and sending their bottom row to the next worker. This creates a pipeline where each worker processes tiles from left to right across its assigned row while coordinating with adjacent workers through message passing.
+
+The master process initializes the chain with operation costs and left column segments, then feeds the top row segments (representing string S2) one at a time to the first worker. Each segment propagates through the chain as workers compute their respective tiles. The final edit distance is extracted from the last element of the bottom row produced by the final worker after processing the last tile column. This approach achieves parallelism while amortizing communication costs through tile-based computation, as each worker performs `TileHeight × TileWidth` operations between communications.

@@ -36,6 +36,9 @@
     ]
 ).
 
+ed_par(S1, S2, NW, TileWidth) ->
+    ed_par(S1, S2, default_op_costs(), NW, TileWidth).
+
 % ed_par(S1, S2, OpCosts, NW, TileWidth) -> EditDistance
 ed_par(S1, S2, OpCosts, NW, TileWidth) when
     is_list(S1),
@@ -208,48 +211,6 @@ ed_par_test_() ->
                 ?assertEqual(Seq, Par)
             end)}
     ].
-
-% Implementation notes (from Mark):
-%   Please delete these notes when you have completed your implementation.
-%   Feel free to add comments that help us understand your solution.
-%
-%   My solution divides the computation into tiles by breaking
-%   S1 and S2 into segments.
-%   I use hw5_lib:string_to_strcost/2 function to convert S1 and
-%   S2 into the list of {Element, Cost} tuples as described in the
-%   comments for ed_tile (and ed_row, and ed_tab, take your pick).
-%   I used a process chain -- that's why I provided a set of functions
-%   for implementing process chains in hw5_lib.erl.
-%
-%   Having divided the computation into tiles, the key observation
-%   is that tiles overlap!  For example if TileLeft and TileRight
-%   are adjacent tiles with TileLeft to the left of TileRight, then
-%   the leftmost column of TileRight is the same as the rightmost
-%   column of TileLeft.  Why?  Because the values for the column
-%   were computed computing TileLeft, and they are needed as the
-%   starting point for each row in TileRight.  In the same way,
-%   if TileUp and TileDown are adjacent tiles with TileUp above
-%   TileDown, then the bottommost row of TileUp is the same as the
-%   topmost row of TileDown.
-%     When debugging my code, I hit a problem that my first attempt
-%   at dividing S1 and S2 into segments for the tiles didn't take
-%   into account that these segments need to overlap the same way
-%   that the tiles do.  At least they need to overlap in my solution.
-%   I spotted the problem by modifying my ed_worker function (the Fun
-%   parameter to hw5_lib:chain_create/3) to show the LeftColumn and
-%   TopRow at the start of each tile computation and the RightColumn
-%   and BottomRow and the end of each tile computation.
-%   I compared this with:
-%     hw5_lib:ed_tab(hw5_lib:string_to_strcosts(S1),
-%                    hw5_lib:string_to_strcosts(S2),
-%                    hw5_lib:default_op_costs())
-%   and found the problem.
-%
-%   Oh, right.  My solution is 8 lines of Erlang.  Much shorter than
-%   the comments explaining my implementation effort.
-
-ed_par(S1, S2, NW, TileWidth) ->
-    ed_par(S1, S2, default_op_costs(), NW, TileWidth).
 
 % My code also has:
 % ed_worker(Chain, LeftCol, OpCosts) -> ...

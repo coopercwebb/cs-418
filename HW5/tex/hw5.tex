@@ -70,6 +70,20 @@ Your solution should have three files file: \texttt{hw5.pdf}.
           \par
           If you had no collaborators, write ``\textit{No collaborators}''.
           A blank or omitted response will get no credit.
+          \begin{answer}
+              Anthropic Claude 4.5 + VSCode Cline integration \\
+              Used for: \\
+              1.c. Converting timing data to a latex table \\
+              2.a. Generated a helper function that creates the
+              overlapping segments outputted from segment\_list (ie. LeftCol \& TopRow) \\
+              2.b. Generated an explanation of my algorthim based on code + comments. \\
+              2.c. Generated a boiler plate eunit test cases with different string lengths (I added on edge cases) \\
+              2.d. Generated the hw5\_timing.erl for determing speedup file that (Altered for tile size comparison) \\
+              Converted timing data to tex format. \\
+              Organized my bullet point observations/explanations into paragraphs. \\
+              3.c. Generated a shell script that runs .\/henon with different n\_blocks outputs GFLOPS.
+              Tex Table generation \\
+          \end{answer}
           \par
           \textbf{Extra Credit:} When grading HW 1, one of our TA's pointed out that many of
           you did an extra fantastic job on this question providing detailed prompts that
@@ -359,11 +373,40 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                     \hrefc{https://www.students.cs.ubc.ca/~cs-418/2025-1/hw/5/src/hw5_lib.erl}{hw5\_lib.erl}
                     are comments.
                     You may not need to be that thorough, but you should make your design choices clear.
+                    \begin{answer}
+                        This implementation divides the edit distance dynamic programming tableau into rectangular tiles
+                        and processes them using a chain of worker processes. The tableau is partitioned horizontally
+                        into rows of tiles, where each row has a height of `TileHeight` and each tile within a row has a
+                        width of `TileWidth`. The chain length is determined by the number of tile rows needed to cover
+                        string S1, with a maximum of `NW` workers.
+                        \\ \\
+                        The key insight (as provided by the hint), is that tiles overlap at their boundaries:
+                        the right column of one tile becomes the left column of its right neighbor, and the
+                        bottom row of one tile becomes the top row of the tile below it. The `segment\_list/2`
+                        helper function creates these overlapping segments from the input strings. Each worker
+                        in the chain is responsible for computing one horizontal row of tiles. Workers use the
+                        `hw5\_lib:ed\_tile/3` function to compute individual tiles, receiving their top row
+                        from the previous worker in the chain and sending their bottom row to the next worker.
+                        This creates a pipeline where each worker processes tiles from left to right across its
+                        assigned row while coordinating with adjacent workers through message passing.
+                        \\ \\
+                        The master process initializes the chain with operation costs and left column segments,
+                        then feeds the top row segments (representing string S2) one at a time to the first
+                        worker. Each segment propagates through the chain as workers compute their respective
+                        tiles. The final edit distance is extracted from the last element of the bottom
+                        row produced by the final worker after processing the last tile column. This approach
+                        achieves parallelism while amortizing communication costs through tile-based
+                        computation, as each worker performs `TileHeight × TileWidth` operations between
+                        communications.
+                    \end{answer}
               \item Write some test-cases for \code{hw5:ed\_par}. (\textbf{5 points})\\
                     Feel free to use \code{hw5\_lib:ed\_seq} as a reference.
                     If you used \code{hw5\_lib:default\_op\_costs()}, round-off error shouldn't affect your
                     results, and that will make comparisons easier.\\
                     If you wrote other functions, provide tests for them as well.
+                    \begin{answer}
+                        hw5:ed\_par\_test() located at line 123.
+                    \end{answer}
               \item Measure and report speed-up. (\textbf{12 points})\\
                     As usual, please run your timing measurements on
                     \texttt{gambier.students.cs.ubc.ca} or\\
@@ -372,14 +415,102 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                     I found that I could have strings of 1000 to 2000 characters and satisfy this constraint.
                     \begin{enumerate}
                         \item Include your raw data. (\textbf{4 points})
+                              \begin{answer}
+                                  \begin{verbatim}
+=== Testing with 5000 char strings, varied tilewidth ===
+
+=== Test 0: BENCHMARK (SEQUENTIAL) ===
+Sequential (n=10): mean = 4.058337 s, std = 0.761914 s
+
+=== Test 1: Tile Width 2 ===
+Workers (NW): 2500
+Parallel: mean = 1.075795 s, std = 0.044341 s
+Speedup: 3.77x
+
+=== Test 2: Tile Width 5 ===
+Workers (NW): 1000
+Parallel: mean = 0.352421 s, std = 0.016580 s
+Speedup: 11.52x
+
+=== Test 3: Tile Width 10 ===
+Workers (NW): 500
+Parallel: mean = 0.192560 s, std = 0.005881 s
+Speedup: 21.08x
+
+=== Test 4: Tile Width 20 ===
+Workers (NW): 250
+Parallel: mean = 0.125761 s, std = 0.006537 s
+Speedup: 32.27x
+
+=== Test 5: Tile Width 40 ===
+Workers (NW): 125
+Parallel: mean = 0.110200 s, std = 0.003502 s
+Speedup: 36.83x
+
+=== Test 6: Tile Width 80 ===
+Workers (NW): 63
+Parallel: mean = 0.160911 s, std = 0.006686 s
+Speedup: 25.22x
+
+=== Test 7: Tile Width 160 ===
+Workers (NW): 32
+Parallel: mean = 0.291928 s, std = 0.013815 s
+Speedup: 13.90x
+
+=== Test 8: Tile Width 250 ===
+Workers (NW): 20
+Parallel: mean = 0.440605 s, std = 0.035544 s
+Speedup: 9.21x
+
+=== Test 9: Tile Width 500 ===
+Workers (NW): 10
+Parallel: mean = 0.837445 s, std = 0.053051 s
+Speedup: 4.85x
+
+=== Test 10: Tile Width 1000 ===
+Workers (NW): 5
+Parallel: mean = 1.354837 s, std = 0.132503 s
+Speedup: 3.00x
+
+=== Test 11: Tile Width 2500 ===
+Workers (NW): 2
+Parallel: mean = 3.161660 s, std = 0.399689 s
+Speedup: 1.28x
+                                  \end{verbatim}
+                              \end{answer}
                         \item Show how your choices of configuration parameters impact the result. (\textbf{3 points})\\
                               For my solution, there is some impact on changing the number of processes or the tile width,
                               but the region of optimal performance is pretty flat.
+                              \begin{answer}
+                                  This represents an optimistic maximum speedup of 36.83x. The implementation manually
+                                  sets the number of tile rows equal to NW (number of workers), and for these
+                                  5000-character strings, the tableau is perfectly square (5000×5000), which
+                                  optimizes the pipeline by balancing tile dimensions. This speedup is data-dependent
+                                  and reflects ideal conditions where workers remain fully utilized.
+                              \end{answer}
                         \item Report the best speed-up you could get (\textbf{2 points})\\
                               Note: I got a speed-up of about 8 on \code{thetis} with 32, 2-way multithreaded cores.
                               Running on my laptop (M1-Pro CPU, 8 cores), I get a speed-up of about 5.
+                              \begin{answer}
+                                  36.83x speedup (Test 5: Tile Width 40, Workers 125)
+                              \end{answer}
                         \item Identify causes of performance loss for this example? (\textbf{3 points})\\
                               You may need to speculate, but give some evidence for your guesses.
+                              \begin{answer}
+                                  I hypothesize that performance loss stems primarily from the chain architecture's
+                                  cascading delays: if any worker stalls, all downstream workers must wait for their top row input,
+                                  propagating latency through the pipeline. The algorithm is slow to start but
+                                  reaches peak parallel performance (NW = number of tile rows) at around half tableau
+                                  completion, then reduces active workers as they complete. Additionally, the master
+                                  process passes left column segments worker-by-worker using [Head | Tail] pattern,
+                                  creating sequential initialization overhead that could potentially be reduced with parallel
+                                  broadcast. Note: This initialization overhead is likely negligible since
+                                  each worker must wait for worker 1 to complete its first tile anyway, effectively
+                                  hiding the sequential distribution cost, though parallel broadcast could be tested
+                                  for confirmation. Evidence: speedup degrades when tile dimensions become imbalanced
+                                  (very small or very large tile widths), suggesting communication overhead dominates
+                                  when tiles don't amortize message passing costs effectively.
+                              \end{answer}
                     \end{enumerate}
           \end{enumerate}
 
@@ -728,7 +859,7 @@ Your solution should have three files file: \texttt{hw5.pdf}.
               \item \textbf{(3 points)}
                     The GPUs on the \texttt{linXX.students.cs.ubc.ca} machines have nVidia \gpumodel{} GPUs.
                     How many SMs does the \gpumodel{} GPU have?  Cite your source.  Better yet,
-                    run the program \texttt{cuprop} (built from \code{cuprop.cu} in the source
+                    run the program \texttt{cuprop} built from \code{cuprop.cu} in the source
                     directory for this assignment.  Either way, explain how you got your answer.
                     \begin{answer}
                         48 SMs \\ \\
@@ -769,6 +900,13 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                         \item The spacing of the steps is specific to the \gpumodel{}.  Other
                               GPUs would have their own spacings.
                     \end{itemize}
+                    \begin{answer}
+                        The steps are appearing at multiples of 48. This correlates with number of SM's available
+                        on the RTX 3070 Ti. This is also confirmed with the peak performance appearing at n\_blocks 240 (240 / 48 = 5). \\
+                        \\
+                        Having n\_blocks at multiples of 48 maximizes the efficeincy of block scheduling on SM's. If we have 48k + 1 blocks,
+                        the extra block has to wait for an SM to finish to run independently.
+                    \end{answer}
 
               \item \textbf{(5 points)}
                     What is the speed-up relative to the host CPU?
@@ -790,7 +928,7 @@ Your solution should have three files file: \texttt{hw5.pdf}.
                             \mathrm{SpeedUp} & = & \displaystyle\frac{\mathrm{GFlops}_{\mathrm{GPU}}}{\mathrm{GFlops}_{\mathrm{CPU}}}
                         \end{array}\end{displaymath}
 
-              \item \textbf{10 points)}\label{q:recur.64}
+              \item \textbf{10 points}\label{q:recur.64}
                     Implement the double-precision versions, i.e.\ the \code{henon64} kernel and the \code{henon\_cpu64} function
                     for the host CPU.
                     \par
