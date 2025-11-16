@@ -83,6 +83,8 @@ Your solution should have three files file: \texttt{hw5.pdf}.
               Organized my bullet point observations/explanations into paragraphs. \\
               3.c. Generated a shell script that runs .\/henon with different n\_blocks outputs GFLOPS.
               Tex Table generation \\
+              3.e. Converted raw output to tex table \\
+              3.g. Converted raw output to tex table, probed about double precision less speed-up \\
           \end{answer}
           \par
           \textbf{Extra Credit:} When grading HW 1, one of our TA's pointed out that many of
@@ -927,6 +929,27 @@ Speedup: 1.28x
                     \begin{displaymath}\begin{array}{rcl}
                             \mathrm{SpeedUp} & = & \displaystyle\frac{\mathrm{GFlops}_{\mathrm{GPU}}}{\mathrm{GFlops}_{\mathrm{CPU}}}
                         \end{array}\end{displaymath}
+                    \begin{answer}
+                        \begin{center}
+                            \begin{tabular}{|l|c|c|c|}
+                                \hline
+                                \textbf{Configuration} & \textbf{CPU}         & \textbf{GPU}          & \textbf{Units} \\
+                                \hline
+                                n\_data                & 102,400              & 102,400               & N/A            \\
+                                \hline
+                                n\_iter                & 10,000               & 1,000,000             & iterations     \\
+                                \hline
+                                Mean time (5 runs)     & 3.1786               & 0.13288               & seconds        \\
+                                \hline
+                                Total FLOPs            & $5.12 \times 10^{9}$ & $5.12 \times 10^{11}$ & operations     \\
+                                \hline
+                                \textbf{GFLOPS}        & \textbf{1.611}       & \textbf{3853.5}       & GFLOPS         \\
+                                \hline
+                            \end{tabular}
+                        \end{center}
+
+                        \textbf{Speedup:} $\frac{3853.5}{1.611} = 2391.7\times$ \\ \\
+                    \end{answer}
 
               \item \textbf{10 points}\label{q:recur.64}
                     Implement the double-precision versions, i.e.\ the \code{henon64} kernel and the \code{henon\_cpu64} function
@@ -943,6 +966,29 @@ Speedup: 1.28x
                     The \code{main} function reports the squared-step-size mean and standard deviation
                     for both \code{henon\_cpu} and \code{henon\_gpu} so you can compare the result.
                     Report the timing data that you get, report the speed-up, and make a few observations.
+                    \begin{answer}
+                        \begin{center}
+                            \begin{tabular}{|l|c|c|c|}
+                                \hline
+                                \textbf{Configuration} & \textbf{CPU}         & \textbf{GPU}         & \textbf{Units} \\
+                                \hline
+                                n\_data                & 102,400              & 102,400              & N/A            \\
+                                \hline
+                                n\_iter                & 10,000               & 10,000               & iterations     \\
+                                \hline
+                                Mean time (5 runs)     & 3.180                & 0.09170              & seconds        \\
+                                \hline
+                                Total FLOPs            & $5.12 \times 10^{9}$ & $5.12 \times 10^{9}$ & operations     \\
+                                \hline
+                                \textbf{GFLOPS}        & \textbf{1.610}       & \textbf{55.83}       & GFLOPS         \\
+                                \hline
+                            \end{tabular}
+                        \end{center}
+
+                        \textbf{Speedup:} $\frac{55.83}{1.610} = 34.68\times$ \\ \\
+
+                        Observations: Double-precision shows dramatically lower GPU speedup (34.68× vs 2391.7× for single-precision), primarily because GPUs have significantly fewer double-precision units than single-precision units.
+                    \end{answer}
           \end{enumerate}
 \end{enumerate}
 
