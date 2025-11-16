@@ -120,46 +120,46 @@ The master process initializes the chain with operation costs and left column se
 
 ### henon cpu timings
 
-webb47@lin15:~/cs-418/HW5/src$ ./henon 100 100 10000 5 4
-CPU: rms-step-size = 1.698, var = 2.663
-CPU: n_data= 10000, n_iter=   10000, t_elapsed=      0.3125
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000 5 4
+CPU: rms-step-size = 1.698, var = 2.662
+CPU: n_data=102400, n_iter=   10000, t_elapsed=       3.192
 GPU: rms-step-size = 1.698, var = 2.662
-GPU, n_blocks=100, tpb= 100, n_iter=   10000, single-precision, time elapsed: mean =      8.8e-06, stdev =    1.397e-05
-webb47@lin15:~/cs-418/HW5/src$ ./henon 100 100 10000 5 4
-CPU: rms-step-size = 1.698, var = 2.663
-CPU: n_data= 10000, n_iter=   10000, t_elapsed=      0.3079
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, single-precision, time elapsed: mean =     0.001531, stdev =    0.0001524
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000 5 4
+CPU: rms-step-size = 1.698, var = 2.662
+CPU: n_data=102400, n_iter=   10000, t_elapsed=       3.199
 GPU: rms-step-size = 1.698, var = 2.662
-GPU, n_blocks=100, tpb= 100, n_iter=   10000, single-precision, time elapsed: mean =    0.0001384, stdev =    0.0001019
-webb47@lin15:~/cs-418/HW5/src$ ./henon 100 100 10000 5 4
-CPU: rms-step-size = 1.698, var = 2.663
-CPU: n_data= 10000, n_iter=   10000, t_elapsed=      0.3109
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, single-precision, time elapsed: mean =     0.001298, stdev =    0.0002261
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000 5 4
+CPU: rms-step-size = 1.698, var = 2.662
+CPU: n_data=102400, n_iter=   10000, t_elapsed=       3.187
 GPU: rms-step-size = 1.698, var = 2.662
-GPU, n_blocks=100, tpb= 100, n_iter=   10000, single-precision, time elapsed: mean =     0.000182, stdev =    7.575e-05
-webb47@lin15:~/cs-418/HW5/src$ ./henon 100 100 10000 5 4
-CPU: rms-step-size = 1.698, var = 2.663
-CPU: n_data= 10000, n_iter=   10000, t_elapsed=      0.3117
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, single-precision, time elapsed: mean =     0.001381, stdev =    0.0001866
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000 5 4
+CPU: rms-step-size = 1.698, var = 2.662
+CPU: n_data=102400, n_iter=   10000, t_elapsed=       3.168
 GPU: rms-step-size = 1.698, var = 2.662
-GPU, n_blocks=100, tpb= 100, n_iter=   10000, single-precision, time elapsed: mean =    0.0001792, stdev =    7.335e-05
-webb47@lin15:~/cs-418/HW5/src$ ./henon 100 100 10000 5 4
-CPU: rms-step-size = 1.698, var = 2.663
-CPU: n_data= 10000, n_iter=   10000, t_elapsed=      0.3071
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, single-precision, time elapsed: mean =     0.001503, stdev =    9.392e-05
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 10000 5 4
+CPU: rms-step-size = 1.698, var = 2.662
+CPU: n_data=102400, n_iter=   10000, t_elapsed=       3.147
 GPU: rms-step-size = 1.698, var = 2.662
-GPU, n_blocks=100, tpb= 100, n_iter=   10000, single-precision, time elapsed: mean =     0.000138, stdev =    0.0001016
+GPU, n_blocks=100, tpb=1024, n_iter=   10000, single-precision, time elapsed: mean =       0.0014, stdev =    0.0001367
 
 ### henon gpu timings
 
-webb47@lin15:~/cs-418/HW5/src$ ./henon 100 100 1000000 5 4
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 1000000 5 4
 GPU: rms-step-size = 1.699, var = 2.663
-GPU, n_blocks=100, tpb= 100, n_iter= 1000000, single-precision, time elapsed: mean =      0.02039, stdev =    0.0001755
-webb47@lin15:~/cs-418/HW5/src$ ./henon 100 100 1000000 5 4
+GPU, n_blocks=100, tpb=1024, n_iter= 1000000, single-precision, time elapsed: mean =       0.1336, stdev =     0.004548
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 1000000 5 4
 GPU: rms-step-size = 1.699, var = 2.663
-GPU, n_blocks=100, tpb= 100, n_iter= 1000000, single-precision, time elapsed: mean =      0.02045, stdev =    0.0001237
-webb47@lin15:~/cs-418/HW5/src$ ./henon 100 100 1000000 5 4
+GPU, n_blocks=100, tpb=1024, n_iter= 1000000, single-precision, time elapsed: mean =       0.1354, stdev =     0.004745
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 1000000 5 4
 GPU: rms-step-size = 1.699, var = 2.663
-GPU, n_blocks=100, tpb= 100, n_iter= 1000000, single-precision, time elapsed: mean =      0.02034, stdev =     0.000199
-webb47@lin15:~/cs-418/HW5/src$ ./henon 100 100 1000000 5 4
+GPU, n_blocks=100, tpb=1024, n_iter= 1000000, single-precision, time elapsed: mean =       0.1315, stdev =    0.0004249
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 1000000 5 4
 GPU: rms-step-size = 1.699, var = 2.663
-GPU, n_blocks=100, tpb= 100, n_iter= 1000000, single-precision, time elapsed: mean =      0.01896, stdev =    7.089e-05
-webb47@lin15:~/cs-418/HW5/src$ ./henon 100 100 1000000 5 4
+GPU, n_blocks=100, tpb=1024, n_iter= 1000000, single-precision, time elapsed: mean =       0.1319, stdev =    0.0004024
+webb47@lin15:~/cs-418/HW5/src$ ./henon 100 1024 1000000 5 4
 GPU: rms-step-size = 1.699, var = 2.663
-GPU, n_blocks=100, tpb= 100, n_iter= 1000000, single-precision, time elapsed: mean =      0.02045, stdev =    0.0002099
+GPU, n_blocks=100, tpb=1024, n_iter= 1000000, single-precision, time elapsed: mean =        0.132, stdev =    0.0003768
