@@ -1,0 +1,193 @@
+\documentclass{article}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{upquote}
+\usepackage{amssymb}
+\usepackage{wasysym}
+\usepackage{color}
+\usepackage{epsfig}
+\usepackage{arydshln}
+\usepackage{hyperref}
+\usepackage[all]{xy}
+\setlength{\oddsidemargin}{0in}\setlength{\textwidth}{6.5in}
+\setlength{\topmargin}{0.0in}\setlength{\textheight}{8.5in}
+\input{cs418-macros}
+\newcommand{\srcdir}{https://www.students.cs.ubc.ca/~cs-418/2025-1/hw/5/src}
+\newcommand{\sq}{\textquotesingle}
+\newcommand{\bsq}[1]{\textquotesingle#1\textquotesingle}
+\newcommand{\erltemplate}{\hrefc{http://www.students.cs.ubc.ca/~cs-418/2025-1/hw/5/src/hw5.erl}{\code{hw5.erl}}}
+\newcommand{\erlprompt}{>~}
+\newcommand{\SpeedUp}{\ensuremath{\mathit{SpeedUp}}}
+\newcommand{\ro}{{\makebox[2.0em][c]{\color{MediumRed}{1}}}}
+\newcommand{\bz}{{\makebox[2.0em][c]{\color{blue}{0}}}}
+\newcommand{\kz}{{\makebox[2.0em][c]{\color{black}{0}}}}
+\newcommand{\kx}[1]{\makebox[2.0em][c]{\color{black}$x_{j}[#1]$}}
+\newcommand{\kb}{\makebox[1em][c]{|}}
+\newcommand{\pb}{\makebox[1em][c]{\phantom{|}}}
+\newcommand{\kc}{\makebox[1em][c]{,}}
+\newcommand{\Henon}{H\'{e}non}
+\newcommand{\gpumodel}{RTX 3070 Ti}
+\newcounter{saveenumii}
+
+% answer commands
+% Colours
+\definecolor{blu}{rgb}{0,0,1}
+\newcommand{\blu}[1]{{\textcolor{blu}{#1}}}
+\definecolor{gre}{rgb}{0,.5,0}
+\newcommand{\gre}[1]{\textcolor{gre}{#1}}
+\definecolor{red}{rgb}{1,0,0}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand\ans[1]{\par\gre{#1}}
+\newenvironment{answer}{\par\begingroup\color{gre}Answer: }{\endgroup}
+\let\ask\blu
+\let\update\red
+\newenvironment{asking}{\begingroup\color{blu}}{\endgroup}
+
+\begin{document}
+\noindent%
+CpSc 418 \hfill \begin{tabular}[t]{c}{\Large\bf Homework 6}\smallskip\\
+		\end{tabular}
+	 \hfill Due: Dec. 8, 2025, 11:59pm\\
+	 \hfill Early Bird: Dec. 6, 2025, 11:59pm\medskip\\
+Please submit your solution using handin:\\
+\rule{2em}{0ex}\texttt{handin cs-418 hw6}\\
+Your solution should have these files:\\
+\texttt{any(hw6.pdf, hw6.txt)\\
+hw6\_lib.h\\hw6.cu\\
+Makefile\\
+hw6\_mem.cu\\
+hw6\_lib.cu\\
+hw6\_mem.h}.
+  
+\section*{The Questions}
+
+\begin{enumerate}\setcounter{enumi}{-1}
+  \item \textbf{Collaborators}:\\
+    \textbf{Extra Credit:}
+    \begin{enumerate}
+      \item Include your prompts to AI assistants as described above.
+      \item Tell us why you didn't use an AI assistant or didn't find it helpful.
+      \item Write a few sentences that you think would be the best advice you could
+	give to a student starting this assignment based on your experience of
+	completing it.
+      \item Identify a question that you thought was particularly helpful or
+	pointlessly tedious, and give us a few sentences saying why.
+      \item Write something else that you think is worthy of extra-credit.
+	Mark it clearly as your response to the \textbf{Extra Credit} part
+	of this question.
+    \end{enumerate}
+
+  \clearpage
+  \item \textbf{Coalesced memory references}:\\
+  This is a read and run-code problem. You'll get to write code in the subsequent
+  problems.
+  \par
+  Download the source files \{hw6,hw6\_lib, hw6\_mem\}.\{cu,h\} and Makefile. Build the
+  mem program:\\
+  \rule{1.5em}{0ex}\texttt{make mem}\\
+  Please do this on one of the linXX machines (i.e. lin01, lin02, ..., or lin25).
+  \par
+  If you run\\
+  \rule{1.5em}{0ex}\texttt{mem}\\
+  it will run a kernel with parameters where all memory references are coalesced.
+  OTOH,\\
+  \rule{1.5em}{0ex}\texttt{./mem - - - false}\\
+  it will the kernel where all memory references are non-coalesced. See the
+  comments at the beginning of hw6.cu for the many options you can use.
+
+  \begin{enumerate}
+      \item Explain why the kernel with 'coalesced' set to 'true' has all of its
+    memory references coalesced. This requires reading the code. I'll explain
+    a few key points below.
+    
+      \item Explain why the kernel with 'coalesced' set to 'false' has nearly all
+    of its memory references not coalesced. Again, read the code and my notes
+    below.
+    
+      \item Why do we get more accurate estimates when n (the number of int's in
+    the main data array) is large? Feel free to experiment with different
+    values for n. I recommend using power-of-two values. It is sufficient
+    to make the observation and explain the trends in terms of the architecture
+    features.
+    \par
+      Hint: if you want to dive deeper into this problem, you can use these
+    measurements to estimate the L2 cache size and miss penalty.
+    
+      \item What is the memory bandwidth achieved when the memory references are
+    coalesced?
+    
+      \item What is the memory bandwidth achieved when the memory references are
+    not coalesced?
+    
+      \item How much longer does it take a warp to do WarpSize global memory
+    reads when references are not coalesced than when they are coalesced.
+    
+  \end{enumerate}
+
+  Notes about collisions:
+  \par
+    The \code{gmem\_fetch} kernel has each thread perform \code{n\_read} reads from the
+    global memory. Let\\
+    \rule{1.5em}{0ex}\code{i = blockDim.x * blockIdx.x + threadIdx.x}\\
+    be the global index of the thread. Thread i first reads from array
+    index \code{i}, then \code{(i+stride[i]) \% n}, then \code{(i+2*stride[i]) \% n}, and so on.
+    \par
+    The $k^{th}$ read (with $k$ starting at $0$) is from\\
+    \rule{1.5em}{0ex}\code{ar[i + k*stride[i]]}.\\
+    To get all of the accesses coalesced, the stride array is initialized
+    so that \code{stride[i]=gridDim.x*blockDim.x} (i.e. the total number of threads).
+    \par
+    Why does this produce coalesced memory accesses? (i.e. Q1.a).
+    \par
+      To get the accesses non-coalesced (with high probability), \code{stride[i]}
+    is initialized to a random integer with \code{0 <= stride[i] < n}. Why does
+    this produce non-coalesced reads (with high probability)?
+    \par
+      We would get even better randomization if for each read, each thread
+    independently chose a new random address in $0...n-1$. But, pseudo random
+    number generation is much slower than a single global memory access;
+    so this would make measurements difficult. The method I used is,
+    empirically, just as good and keeps the kernel memory bound.
+
+  \clearpage
+  \item \textbf{Shared memory collisions}:\\
+  In this problem, you will write a new kernel, similar to the \code{gmem\_fetch} kernel in \texttt{hw6\_lib.cu}. Call this kernel \code{smem\_collide}. With this kernel each block should perform a collaborative read to load data from global memory into shared memory. Each thread should then perform a large number of reads from the shared memory. These reads should use indexing methods similar to those in \code{gmem\_fetch} so the compiler can't figure out the access pattern at compile time (it should depend on the parameters used when running the program).
+  \begin{enumerate}
+      \item Find an access pattern so that if \code{n\_read} is large enough, every thread in the block will eventually read from every location loaded into the shared memory and these reads incur no shared memory collisions. Describe what property an access pattern needs to have to ensure that there are no shared-memory collision. Explain why your access pattern satisfies this property. Your description and explanation should be similar in level of detail to the explanatory note for Q1.
+
+      \item Find an access pattern so that if \code{n\_read} is large enough, every thread in the block will eventually read from every location loaded into the shared memory and these reads incur the maximum shared-memory collision penalty. I.e. you are trying to make the code as *slow* as possible. Describe what property an access pattern needs to have to maximize the shared-memory collision penalty. Explain why your access pattern satisfies this property. Your description and explanation should be similar in level of detail to the explanatory note for Q1.
+
+      \item Implement your kernel to perform your access patterns from Q2.a and Q2.b. Report the execution times you measure. From this data, what is the execution time penalty for a warp to perform a shared memory read with maximum collisions.
+      
+  \end{enumerate}
+
+  \clearpage
+  \item \textbf{Random accesses of the shared memory}:\\
+  Consider a kernel that makes random accesses to the shared memory. What is the expected collision penalty for each read performed by a warp?
+  \par
+    This amounts to picking \code{WarpSize} integers uniformly and independently at random from \code{\{0, 1, ... WarpSize-1\}}, where \code{WarpSize=32}. Find the value that occurs the most times. For example for one trial, you might find that the value $19$ occurs $7$ times, and all other values occur at most $7$ times. What is the expected number of occurrences for the value that occurs the most times? For the one sample described above, this number is $7$.
+    \par
+    There are (at least) three ways you can solve this:
+  \begin{enumerate}
+      \item Write a simulation in any "reasonable" programming language: C, C++, CUDA, Erlang, Java, Javascript (but why?), Julia, Matlab, Python (I won't tell), R, etc. Your code should be clear with comments that explain the key ideas. Please don't write a comment for each line that just says in English what is already said more clearly in the code. What estimate do you get?
+      \item Set-up a recurrence to compute the answer, and write code to compute the value for the recurrence (same guidelines as for approach 'a').
+      \item Set-up the recurrence and find a nice simple formula to give it a closed form. I haven't found one, but I haven't given it lots of time. We'll give some extra credit for a clear and correct derivation.
+  \end{enumerate}
+
+  \clearpage
+  \item \textbf{Debug the textbook}:\\
+  I'll post my implementation of the convolution kernel described in the book. Compare my version to the one in the book. Spot the differences. Explain the impact of each change. This problem isn't finalized yet.
+\end{enumerate}
+
+\vfill
+\parbox{0.16\textwidth}{
+  \includegraphics[width=0.16\textwidth]{cc-by}
+}\hfill\parbox{0.80\textwidth}{
+  \footnotesize
+  Unless otherwise noted or cited, 
+  the questions and other material in this homework problem set
+  is copyright 2025 by Mark Greenstreet
+  and are made available under the terms of the Creative Commons
+  Attribution 4.0 International license
+  \url{http://creativecommons.org/licenses/by/4.0/}}
+\end{document}
