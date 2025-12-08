@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}",
+                "/cs/local/lib/pkg/cudatoolkit/include",
+                "/usr/include",
+                "/usr/local/include"
+            ],
+            "defines": [
+                "__CUDACC__",
+                "__NVCC__"
+            ],
+            "compilerPath": "/cs/local/lib/pkg/cudatoolkit/bin/nvcc",
+            "cStandard": "c17",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-gcc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}",
+                    "/cs/local/lib/pkg/cudatoolkit/include"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}
