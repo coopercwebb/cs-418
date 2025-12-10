@@ -4,9 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}",
-                "/cs/local/lib/pkg/cudatoolkit/include",
-                "/usr/include",
-                "/usr/local/include"
+                "/cs/local/lib/pkg/cudatoolkit/include"
             ],
             "defines": [
                 "__CUDACC__",
