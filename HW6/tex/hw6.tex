@@ -223,9 +223,11 @@ Your solution should have these files:\\
                         To maximize shared memory collisions, we use random strides. We initialize the stride array with random values using \code{ai\_rand}.
                         This assigns a random stride $S_i$ to each thread.
                         Unlike the constant stride case where the relative spacing ($Addr_a - Addr_b$) is preserved, random strides cause the threads to jump to arbitrary offsets relative to each other.
-                        At any given step, the 32 threads in a warp access 32 effectively random addresses. By the birthday paradox, mapping 32 items randomly into 32 bins (banks) results in a high probability of collisions (multiple items per bin).
+                        At any given step, the 32 threads in a warp access 32 effectively random addresses. By the birthday paradox, mapping 32 items randomly into 32 bins (banks) results in a high probability of collisions 
+                        (See the results of Question 4 for an empirical simulation of this collision rate, approx. 3.53x).
                         When multiple threads access the same bank (but different addresses), the hardware must serialize the requests, serving them one by one. This serialization penalty is what makes the code slow.
                         While we cannot easily enforce a strict 32-way serialization at every step due to the kernel structure, random strides statistically generate a heavy collision load compared to any conflict-free pattern.
+                        .
                     \end{answer}
 
               \item Implement your kernel to perform your access patterns from Q2.a and Q2.b. Report the execution times you measure. From this data, what is the execution time penalty for a warp to perform a shared memory read with maximum collisions.
