@@ -28,27 +28,43 @@ static void usage(int i, char **argv, const char **opt_names, const char *type_n
 
 
 // get_int(argc, argv, opt_names, i, v0): return the i^th command line argument as an int.
-//   argc, argv:  the usual arguments to main().
-//   opt_names: array of strings,
-//     opt_names[i] when 1 <= i < argc, a descriptive name for what we expect for the i^th argument
-//   i:  the index for the which command line argument we are processing.
-//   v0: the default value to return if argc < i.
+//   Parameters:
+//     argc, argv:  the usual arguments to main().
+//     opt_names: array of strings.
+//         opt_names[i] when 1 <= i < argc should be a descriptive name
+//         for what we expect for the i^th argument
+//     i:  the index for the which command line argument we are processing.
+//     v0: the default value to return if argc < i.
+//
+//   Return value:
+//     If argv[i] == "-", then we return v0;
+//     If argv[i] is of the form "2^" ++ <digits>, then we treat digits
+//       as the decimal representation of an integer, k, and return 2^k.
+//     Otherwise, we return argv[i] interpreted as a decimal integer.
+//
 int get_int(int argc, char **argv, const char **opt_names, int i, int v0) {
   if(argc <= i) return(v0);
   const char *arg = argv[i];
-  if(arg[0] == '-' && arg[1] == 0) return(v0);
+  if(strcmp(arg, "-") == 0) return(v0);
+  int j = 0;
+  if(arg[j] == '-') j = 1;
+  if(arg[j] == '2' && arg[j+1] == '^') j += 2;
   // make argv[i] sure is an integer
-  if(arg[0] == '-') arg++;
-  for(int j = 0; arg[j]; j++)
-      if(!isdigit(arg[j]))
+  for(int m = j; arg[m]; m++) {
+      if(!isdigit(arg[m]))
 	  usage(i, argv, opt_names, "an integer");
-  return(atoi(argv[i]));
+  }
+  int k = atoi(arg+j);
+  printf("j = %d, k = %d\n", j, k);
+  if(j > 1) k = 1 << k;
+  if(arg[0] == '-') k = -k;
+  return(k);
 }
 
 // get_uint(argc, argv, opt_names, i, v0): return the i^th command line argument as an int.
 //   like get_int(...) but returns an unsigned int.
 //   Note, we allow argv[i] to be a signed integer -- we just cast it to unsigned.
-//   If argv[i] is between 2^31 and 2^32-1, atoi(argv[i]) will return a negative integer,
+//   If argv[i] is between 2^31 and 2^32-1, get_int(...) will return a negative integer,
 //   but it will cast back to the intended value.
 uint get_uint(int argc, char **argv, const char **opt_names, int i, uint v0) {
     return((uint)(get_int(argc, argv,  opt_names, i, v0)));

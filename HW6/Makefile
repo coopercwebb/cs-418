@@ -3,7 +3,6 @@ C++     = g++
 CFLAGS  = -O3
 NVCC    := /cs/local/lib/pkg/cudatoolkit/bin/nvcc
 CUFLAGS := -O3
-CUDALIB = -L/cs/local/lib/pkg/cudatoolkit/lib64 -lcuda -lcudart
 
 OBJS    = hw6.o hw6_lib.o hw6_mem.o
 
@@ -18,8 +17,8 @@ mem:   hw6.o hw6_lib.o hw6_mem.o
 
 .SUFFIXES: .c .cu .o
 %.o: %.c
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c --device-c $(CFLAGS) -o $@ $<
 %.o: %.cpp
-	$(C++) -c $(CFLAGS) -o $@ $<
+	$(C++) -c --device-c $(CFLAGS) -o $@ $<
 %.o: %.cu
-	${NVCC} -c ${CUFLAGS} -o $@ $<
+	${NVCC} -c --device-c ${CUFLAGS} -o $@ $<

@@ -8,8 +8,7 @@
 #include <string>
 #include <cmath>
 
-#include "hw6_types.h"
-#include "hw6_mem.h"
+typedef unsigned int uint;
 
 // Andrew's improved version of CudaTry
 #define CudaTry(ans)                                             \
@@ -43,5 +42,14 @@ double mean(uint n, double sum);
 // stdev(n, sum, sum_sq): return the standard-deviation of n samples
 double stdev(uint n, double sum, double sum_sq);
 
+
+/************************************************************************/
+/*                                                                      */
+/*  Header files from other modules                                     */
+/*                                                                      */
+/************************************************************************/
+
+#include "hw6_mem.h"
+#include "hw6.h"
 
 #endif
