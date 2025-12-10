@@ -11,10 +11,14 @@
 typedef unsigned int uint;
 
 // Andrew's improved version of CudaTry
-#define CudaTry(ans)                                             \
-    { gpuAssert((ans), __FILE__, __LINE__); }
-__inline __host__ void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true) {
-    if (code != cudaSuccess) {
+#define CudaTry(ans)                          \
+    {                                         \
+        gpuAssert((ans), __FILE__, __LINE__); \
+    }
+__inline __host__ void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
+{
+    if (code != cudaSuccess)
+    {
         fprintf(stderr, "CudaTry ASSERTION FAILED: %s %s, line %d\n", cudaGetErrorString(code), file, line);
         if (abort)
             exit(code);
@@ -41,7 +45,6 @@ double mean(uint n, double sum);
 
 // stdev(n, sum, sum_sq): return the standard-deviation of n samples
 double stdev(uint n, double sum, double sum_sq);
-
 
 /************************************************************************/
 /*                                                                      */

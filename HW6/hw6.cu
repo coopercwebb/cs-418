@@ -18,7 +18,6 @@
  *     function, and you will find the code that needs to be filled in.      *
  *                                                                           */
 
-
 /* smem_fetch: perform lots of shared memory reads to measure the impact     *
  *   of shared memory conflicts.                                             *
  *                                                                           *
@@ -49,7 +48,8 @@
 /* I defined my own struct here.  See @351_f2.
 struct foo { struct foo *next; }; */
 
-__global__ void smem_fetch(uint *v, uint n, uint *stride, uint *sum, int n_read) {
+__global__ void smem_fetch(uint *v, uint n, uint *stride, uint *sum, int n_read)
+{
     // you need to write this
 
     // You'll probably declare an array in shared memory here.
@@ -65,13 +65,12 @@ __global__ void smem_fetch(uint *v, uint n, uint *stride, uint *sum, int n_read)
     //   memory reads!
 }
 
-
 // Options: add something useful to smem_cpu(data, n_read).
 //   I didn't get to it.  But having this may help you test/debug your code
-void smem_cpu(Gmem_data *data, int n_read) {
+void smem_cpu(Gmem_data *data, int n_read)
+{
     // write something here if you find it helpful
 }
-
 
 /* usage mem n threads_per_block n_read coalesced measure_time which_test  *
  *   Where                                                                 *
@@ -114,117 +113,140 @@ void smem_cpu(Gmem_data *data, int n_read) {
  *          recieve their default values as described above.               *
  *      If "-" is given for an argument, that argument gets its default    *
  *          value.                                                         */
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     // read our command line parameters
     const char *opt_names[] =
-        { "mem", "n", "threads_per_block", "n_read",
-	  "coalesced", "time_or_test",
-	  "which_test" };
-    if(argc > 1 && strcmp(argv[1], "--help") == 0) {
+        {"mem", "n", "threads_per_block", "n_read",
+         "coalesced", "time_or_test",
+         "which_test"};
+    if (argc > 1 && strcmp(argv[1], "--help") == 0)
+    {
         printf("usage: %s", argv[0]);
-	for(int i = 1; i < 7; i++) 
+        for (int i = 1; i < 7; i++)
             printf(" %s", opt_names[i]);
-	printf("\n");
-	exit(0);
+        printf("\n");
+        exit(0);
     }
-    int tpb = get_int(argc, argv, opt_names, 2, 256); // number of threads per block
+    int tpb = get_int(argc, argv, opt_names, 2, 256);      // number of threads per block
     int n_read = get_int(argc, argv, opt_names, 3, 50000); // number global memory reads performed by each thread
     bool coalesced = (argc < 5) || (argv[4][0] == '-') || (argv[4][0] == 't');
-    bool measure_time = (argc < 6) || (argv[5][0] == '-')
-                                   || (argv[5][0] == 't' && argv[5][1] == 'i');
+    bool measure_time = (argc < 6) || (argv[5][0] == '-') || (argv[5][0] == 't' && argv[5][1] == 'i');
     int which_test;
-    if( (argc < 7) || (argv[6][0] == '-') ||
-            (argv[6][0] == 'g') || (argv[6][0] == 'G')) {
+    if ((argc < 7) || (argv[6][0] == '-') ||
+        (argv[6][0] == 'g') || (argv[6][0] == 'G'))
+    {
         which_test = GMEM_TEST;
-    } else {
+    }
+    else
+    {
         which_test = SMEM_TEST;
     }
     int default_n;
-    if(which_test == GMEM_TEST) {
-      // Make a *big* array in the global memory.
-      // IIRC, student accounts have a limit of 1GByte of memory per process.
-      // 2^26*sizeof(int) is (1/4)GByte.  That should be safe.
-      default_n = 1 << 26;
-    } else { // shared memory conflict tests
-      // make an array that's big enough to make conflict tests easy,
-      // and small enough that we can have many blocks running on an SM to
-      // ensure full thread-occupancy.  An SM has 100KBytes (1024 byte KBytes)
-      // of shared memory and can execute at most 16 blocks, see Table 30 in
-      //   https://docs.nvidia.com/cuda/cuda-programming-guide/05-appendices/compute-capabilities.html
-      // That means each block can be guaranteed 6400 bytes, which is 1600 ints.
-      // We'll set default n to 1024 = 2^10, the largest power of 2 that is <= 1600.
-      default_n = 1 << 10;
+    if (which_test == GMEM_TEST)
+    {
+        // Make a *big* array in the global memory.
+        // IIRC, student accounts have a limit of 1GByte of memory per process.
+        // 2^26*sizeof(int) is (1/4)GByte.  That should be safe.
+        default_n = 1 << 26;
+    }
+    else
+    { // shared memory conflict tests
+        // make an array that's big enough to make conflict tests easy,
+        // and small enough that we can have many blocks running on an SM to
+        // ensure full thread-occupancy.  An SM has 100KBytes (1024 byte KBytes)
+        // of shared memory and can execute at most 16 blocks, see Table 30 in
+        //   https://docs.nvidia.com/cuda/cuda-programming-guide/05-appendices/compute-capabilities.html
+        // That means each block can be guaranteed 6400 bytes, which is 1600 ints.
+        // We'll set default n to 1024 = 2^10, the largest power of 2 that is <= 1600.
+        default_n = 1 << 10;
     }
     printf("which_test = %d, GMEM_TEST = %d, SMEM_TEST = %d\n", which_test, GMEM_TEST, SMEM_TEST);
     uint n = get_int(argc, argv, opt_names, 1, default_n);
 
     int n_blk;
-    int n_dev;  // number of available GPUs on this machine
+    int n_dev; // number of available GPUs on this machine
     cudaDeviceProp prop;
 
     // find out our device properties
     CudaTry(cudaGetDeviceCount(&n_dev));
-    if(n_dev == 0) {
-	fprintf(stderr, "No GPU found.\n");
-	exit(-1);
+    if (n_dev == 0)
+    {
+        fprintf(stderr, "No GPU found.\n");
+        exit(-1);
     }
     CudaTry(cudaGetDeviceProperties(&prop, 0));
-    if(tpb > prop.maxThreadsPerBlock) {
-	fprintf(stderr, "tpb too large.  tpb = %d,  max threads per block = %d\n",
-		tpb, prop.maxThreadsPerBlock);
-	exit(-1);
+    if (tpb > prop.maxThreadsPerBlock)
+    {
+        fprintf(stderr, "tpb too large.  tpb = %d,  max threads per block = %d\n",
+                tpb, prop.maxThreadsPerBlock);
+        exit(-1);
     }
     n_blk = prop.multiProcessorCount *
-	    min((prop.maxThreadsPerMultiProcessor/tpb), prop.maxBlocksPerMultiProcessor);
+            min((prop.maxThreadsPerMultiProcessor / tpb), prop.maxBlocksPerMultiProcessor);
 
     // create a Gmem_data object
     ArrayInit s_init, v_init;
-    int n_threads = n_blk*tpb;
-    if((which_test == GMEM_TEST) && coalesced) {
-	ai_const(&s_init, n_threads);
-	ai_rand(&v_init, n);
-    } else if((which_test == GMEM_TEST) && !coalesced) {
-	ai_rand(&s_init, n_threads);
-	ai_rand(&v_init, n);
-    } else if(which_test == SMEM_TEST) {
-	if((which_test == SMEM_TEST) && (n > V_SH_DIM)) {
-	    fprintf(stderr, "the data array size, n, must be at most %d, got %d\n",
-		    V_SH_DIM, n);
-	    exit(-1);
-	}
-	ai_const(&s_init, 0);
-	// Note: my solution initiales v_init to be used by my smem_fetch to create
-	//   the desired access patterns.  My smem_fetch ignores the stride array
-	//   and I just used ai_const(&s_init, 0) as a placeholder.
-	if(coalesced) {
-	    // You need to write this
-	    fprintf(stderr, "You need to initialize the arrays data values and strides %s\n",
-		    "to create shared-memory accesses without bank conflicts");
-	    exit(-1);
-	} else {
-	    // You need to write this
-	    fprintf(stderr, "You need to initialize the arrays data values and strides %s\n",
-		    "to create shared-memory accesses with bank conflicts");
-	    exit(-1);
-	}
-    } else {
-	fprintf(stderr, "bad value from which_test, %d,  -- how did that happen?!\n",
-	        which_test);
-	exit(-1);
+    int n_threads = n_blk * tpb;
+    if ((which_test == GMEM_TEST) && coalesced)
+    {
+        ai_const(&s_init, n_threads);
+        ai_rand(&v_init, n);
+    }
+    else if ((which_test == GMEM_TEST) && !coalesced)
+    {
+        ai_rand(&s_init, n_threads);
+        ai_rand(&v_init, n);
+    }
+    else if (which_test == SMEM_TEST)
+    {
+        if ((which_test == SMEM_TEST) && (n > V_SH_DIM))
+        {
+            fprintf(stderr, "the data array size, n, must be at most %d, got %d\n",
+                    V_SH_DIM, n);
+            exit(-1);
+        }
+        ai_const(&s_init, 0);
+        // Note: my solution initiales v_init to be used by my smem_fetch to create
+        //   the desired access patterns.  My smem_fetch ignores the stride array
+        //   and I just used ai_const(&s_init, 0) as a placeholder.
+        if (coalesced)
+        {
+            // You need to write this
+            fprintf(stderr, "You need to initialize the arrays data values and strides %s\n",
+                    "to create shared-memory accesses without bank conflicts");
+            exit(-1);
+        }
+        else
+        {
+            // You need to write this
+            fprintf(stderr, "You need to initialize the arrays data values and strides %s\n",
+                    "to create shared-memory accesses with bank conflicts");
+            exit(-1);
+        }
+    }
+    else
+    {
+        fprintf(stderr, "bad value from which_test, %d,  -- how did that happen?!\n",
+                which_test);
+        exit(-1);
     }
     Gmem_data *data = new Gmem_data(n, n_blk, tpb, &s_init, &v_init);
 
     // run the test
-    if(measure_time) {
-	print_time(mem_time(data, n_read, which_test));
-    } else {
-	int n_read_test = 4;  // should be enough to catch bugs, and should run fast
-        bool passed = mem_test(data, n_read_test, which_test);;
-	printf("The results%s match!\n", passed ? "" : " don't");
+    if (measure_time)
+    {
+        print_time(mem_time(data, n_read, which_test));
+    }
+    else
+    {
+        int n_read_test = 4; // should be enough to catch bugs, and should run fast
+        bool passed = mem_test(data, n_read_test, which_test);
+        ;
+        printf("The results%s match!\n", passed ? "" : " don't");
     }
 
     // clean up
-    delete(data);
+    delete (data);
     exit(0);
 }
-
