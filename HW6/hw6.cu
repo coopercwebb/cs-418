@@ -1,76 +1,6 @@
 #include "hw6_lib.h"
 
-// Feel free to change V_SH_DIM if you want
 #define V_SH_DIM 1024 // size of v_sh array (in shared memory)
-
-/*****************************************************************************
- *                                                                           *
- * Here is template code for Q2.  I'm releasing it *very* late.  If you      *
- *   already did your own implementation, that's OK.  It doesn't have to     *
- *   fit this template.  It just needs to be documented well enough that     *
- *   we can understand what you did and why.                                 *
- *                                                                           *
- * If you use this template, there is one function you need to write for     *
- *   HW6, Q2:                                                                *
- *     smem_fetch(uint *v, uint n, uint *stride, uint *sum, int n_read)      *
- *   You also need to initialize data->stride to avoid (or create)           *
- *     shared memory bank conflicts.  Search for "you need to" in the main() *
- *     function, and you will find the code that needs to be filled in.      *
- *                                                                           */
-
-/* smem_fetch: perform lots of shared memory reads to measure the impact     *
- *   of shared memory conflicts.                                             *
- *                                                                           *
- * Description adapted from gmem_fetch in hw6_lib.cu.                        *
- *   If you haven't read the gmem_fetch source code yet,                     *
- *   you really should.                                                      *
- *                                                                           *
- *   Let my_idx = blockDim.x*blockIdx.x + threadIdx.x in the comments below. *
- *   Parameters:                                                             *
- *     uint *v: an array of n values.                                        *
- *     uint n:  the number of elements of v                                  *
- *     uint *stride:                                                         *
- *       We read locations of v starting at v[my_idx] and increasing the     *
- *       array index by stride[my_idx] with each iteration, wrapping around  *
- *       when crossing n.                                                    *
- *     n_read: perform n_read such global memory reads.                      *
- *                                                                           *
- *   Precondition:  blockDim.x <= n                                          *
- *     We don't check for this, but this code can incur a memory violation   *
- *       if there are more threads in the kernel than elements of v.         *
- *                                                                           *
- *   Effect:                                                                 *
- *     sum[my_idx] should be updated with something that depends on what     *
- *     gets computed in your for-loop that performs n_read loads (per        *
- *     thread) from shared memory.                                           *
- *                                                                           */
-
-/* I defined my own struct here.  See @351_f2.
-struct foo { struct foo *next; }; */
-
-__global__ void smem_fetch(uint *v, uint n, uint *stride, uint *sum, int n_read)
-{
-    // you need to write this
-
-    // You'll probably declare an array in shared memory here.
-
-    // Then, you'll want to initialize the array.
-    //   My solution uses values from v because it's bigger than stride.
-    //   Other solutions are possible.
-
-    // Each thread performs n_read loads from the shared memory array
-
-    // Finally, write *something* to sum[my_idx].
-    //   Otherwise, compiler optimizations can discard all of your shared
-    //   memory reads!
-}
-
-// Options: add something useful to smem_cpu(data, n_read).
-//   I didn't get to it.  But having this may help you test/debug your code
-void smem_cpu(Gmem_data *data, int n_read)
-{
-    // write something here if you find it helpful
-}
 
 /* usage mem n threads_per_block n_read coalesced measure_time which_test  *
  *   Where                                                                 *
@@ -200,29 +130,20 @@ int main(int argc, char **argv)
     }
     else if (which_test == SMEM_TEST)
     {
-        if ((which_test == SMEM_TEST) && (n > V_SH_DIM))
+        ai_rand(&v_init, n);
+        if (n > V_SH_DIM)
         {
             fprintf(stderr, "the data array size, n, must be at most %d, got %d\n",
                     V_SH_DIM, n);
             exit(-1);
         }
-        ai_const(&s_init, 0);
-        // Note: my solution initiales v_init to be used by my smem_fetch to create
-        //   the desired access patterns.  My smem_fetch ignores the stride array
-        //   and I just used ai_const(&s_init, 0) as a placeholder.
         if (coalesced)
         {
-            // You need to write this
-            fprintf(stderr, "You need to initialize the arrays data values and strides %s\n",
-                    "to create shared-memory accesses without bank conflicts");
-            exit(-1);
+            ai_const(&s_init, 1);
         }
         else
         {
-            // You need to write this
-            fprintf(stderr, "You need to initialize the arrays data values and strides %s\n",
-                    "to create shared-memory accesses with bank conflicts");
-            exit(-1);
+            ai_rand(&s_init, n);
         }
     }
     else

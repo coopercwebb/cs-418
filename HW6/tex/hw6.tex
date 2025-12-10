@@ -207,9 +207,42 @@ Your solution should have these files:\\
           \begin{enumerate}
               \item Find an access pattern so that if \code{n\_read} is large enough, every thread in the block will eventually read from every location loaded into the shared memory and these reads incur no shared memory collisions. Describe what property an access pattern needs to have to ensure that there are no shared-memory collision. Explain why your access pattern satisfies this property. Your description and explanation should be similar in level of detail to the explanatory note for Q1.
 
+                    \begin{answer}
+                        To ensure no shared memory collisions, we use a constant stride of 1. This means setting \code{stride[i] = 1} for all thread.
+                        Each thread $t$ starts accessing the shared memory at index $m = t$ (where $t$ is \code{threadIdx.x}). At each step $k$, the thread accesses index $m_k = t + k \times 1$.
+                        Shared memory banks are determined by $Address \pmod{32}$.
+                        For a warp of 32 threads ($t \in \{0, \dots, 31\}$), at any step $k$, the bank accessed by thread $t$ is:
+                         $$ \textrm{Bank}_t = (t + k) \pmod{32} $$
+                        Since $t$ ranges from $0$ to $31$, the values of $(t+k) \pmod{32}$ are simply a cyclic shift of the values $0 \dots 31$. They are all distinct.
+                        Because every thread in the warp accesses a unique bank simultaneously, there are zero bank conflicts, maximizing parallelism.
+                    \end{answer}
+
               \item Find an access pattern so that if \code{n\_read} is large enough, every thread in the block will eventually read from every location loaded into the shared memory and these reads incur the maximum shared-memory collision penalty. I.e. you are trying to make the code as *slow* as possible. Describe what property an access pattern needs to have to maximize the shared-memory collision penalty. Explain why your access pattern satisfies this property. Your description and explanation should be similar in level of detail to the explanatory note for Q1.
 
+                    \begin{answer}
+                        To maximize shared memory collisions, we use random strides. We initialize the stride array with random values using \code{ai\_rand}.
+                        This assigns a random stride $S_i$ to each thread.
+                        Unlike the constant stride case where the relative spacing ($Addr_a - Addr_b$) is preserved, random strides cause the threads to jump to arbitrary offsets relative to each other.
+                        At any given step, the 32 threads in a warp access 32 effectively random addresses. By the birthday paradox, mapping 32 items randomly into 32 bins (banks) results in a high probability of collisions (multiple items per bin).
+                        When multiple threads access the same bank (but different addresses), the hardware must serialize the requests, serving them one by one. This serialization penalty is what makes the code slow.
+                        While we cannot easily enforce a strict 32-way serialization at every step due to the kernel structure, random strides statistically generate a heavy collision load compared to any conflict-free pattern.
+                    \end{answer}
+
               \item Implement your kernel to perform your access patterns from Q2.a and Q2.b. Report the execution times you measure. From this data, what is the execution time penalty for a warp to perform a shared memory read with maximum collisions.
+
+                    \begin{answer}
+                        \textbf{Experiment Parameters:} \\
+                        $n = 1024$ \\
+                        $threads\_per\_block = 256$ \\
+                        $n\_read = 50,000$ \\
+                        \\
+                        \textbf{Conflict Free (Stride 1):} 2.81 ms \\
+                        \textbf{Conflicted (Random):} 4.45 ms
+                        \\ \\
+                        The execution time penalty is approximately:
+                        $$ \frac{4.45}{2.81} \approx 1.58 $$
+                        So the random bank conflicts cause roughly a $1.6\times$ slowdown (or 58\% increase in execution time) for this specific kernel configuration and workload.
+                    \end{answer}
 
           \end{enumerate}
 

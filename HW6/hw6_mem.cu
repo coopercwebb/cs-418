@@ -1,5 +1,7 @@
 #include "hw6_lib.h"
 
+#define V_SH_DIM 1024 // size of v_sh array (in shared memory)
+
 static void ar_initialize(uint *ar, int n, ArrayInit *ai)
 {
     for (int i = 0; i < n; i++)
@@ -174,6 +176,72 @@ __global__ void gmem_fetch(uint *v, uint n, uint *stride, uint *sum, int n_read)
     sum[my_idx] = acc;
 }
 
+/* smem_fetch: perform lots of shared memory reads to measure the impact     *
+ *   of shared memory conflicts.                                             *
+ *                                                                           *
+ * Description adapted from gmem_fetch in hw6_lib.cu.                        *
+ *   If you haven't read the gmem_fetch source code yet,                     *
+ *   you really should.                                                      *
+ *                                                                           *
+ *   Let my_idx = blockDim.x*blockIdx.x + threadIdx.x in the comments below. *
+ *   Parameters:                                                             *
+ *     uint *v: an array of n values.                                        *
+ *     uint n:  the number of elements of v                                  *
+ *     uint *stride:                                                         *
+ *       We read locations of v starting at v[my_idx] and increasing the     *
+ *       array index by stride[my_idx] with each iteration, wrapping around  *
+ *       when crossing n.                                                    *
+ *     n_read: perform n_read such global memory reads.                      *
+ *                                                                           *
+ *   Precondition:  blockDim.x <= n                                          *
+ *     We don't check for this, but this code can incur a memory violation   *
+ *       if there are more threads in the kernel than elements of v.         *
+ *                                                                           *
+ *   Effect:                                                                 *
+ *     sum[my_idx] should be updated with something that depends on what     *
+ *     gets computed in your for-loop that performs n_read loads (per        *
+ *     thread) from shared memory.                                           *
+ *                                                                           */
+
+__global__ void smem_fetch(uint *v, uint n, uint *stride, uint *sum, int n_read)
+{
+    // Executes once per block
+    __shared__ uint v_sh[V_SH_DIM];
+    // Everything below executes per thread
+
+    uint my_idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    // Transfer from global memory to shared memory (coalescence will speed it up here)
+    if (threadIdx.x < n)
+    {
+        v_sh[threadIdx.x] = v[threadIdx.x];
+    }
+
+    __syncthreads();
+
+    uint acc = 0;
+    uint m = threadIdx.x;
+    uint my_stride = stride[my_idx];
+    for (int j = 0; j < n_read; j++)
+    {
+        acc += v_sh[m];
+        m += my_stride;
+        if (m >= n)
+        {
+            m -= n;
+        }
+    }
+
+    sum[my_idx] = acc;
+}
+
+// Options: add something useful to smem_cpu(data, n_read).
+//   I didn't get to it.  But having this may help you test/debug your code
+void smem_cpu(Gmem_data *data, int n_read)
+{
+    // write something here if you find it helpful
+}
+
 /* gmem_cpu(data, n_read)
  *   CPU version of gmem_fetch.
  *   Parameters:
@@ -232,7 +300,7 @@ float mem_time(Gmem_data *data, int n_read, int which_test)
     }
     else
     {
-        smem_fetch<<<data->n_blk, data->threads_per_block>>>(data->v_dev, data->n, data->stride_dev, data->sum_dev, n_read);
+        smem_fetch<<<data->n_blk, data->threads_per_block, data->threads_per_block * sizeof(uint)>>>(data->v_dev, data->n, data->stride_dev, data->sum_dev, n_read);
     }
 
     CudaTry(cudaGetLastError());
