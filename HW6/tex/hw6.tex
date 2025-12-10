@@ -92,7 +92,7 @@ Your solution should have these files:\\
                     a few key points below.
 
                     \begin{answer}
-                        When the kernal is set with the 'coalesced' option, threads are accessing sequential data values in v spaced
+                        When the kernel is set with the 'coalesced' option, threads are accessing sequential data values in v spaced
                         apart by a stride equal to n\_threads.
                         \\ \\
                         Based on the gmem\_fetch function, each thread in a warp is accessing its local element in the stride
@@ -111,9 +111,9 @@ Your solution should have these files:\\
                     below.
 
                     \begin{answer}
-                        When the kernal is set without the 'coalesced' option, each thread has a random stride length.
+                        When the kernel is set without the 'coalesced' option, each thread has a random stride length.
                         This means threads in the warp are all striding at different lengths. So now at each 'stride' within the
-                        warp it is requesting 32 non coalesced global memory accesses. So this results in 32 seperate accesses.
+                        warp it is requesting 32 non coalesced global memory accesses. So this results in 32 separate accesses.
                     \end{answer}
 
               \item Why do we get more accurate estimates when n (the number of int's in
@@ -126,7 +126,7 @@ Your solution should have these files:\\
                     measurements to estimate the L2 cache size and miss penalty.
 
                     \begin{answer}
-                        We get better estimates for the reduction of global memory accesses with coallesced patterns
+                        We get better estimates for the reduction of global memory accesses with coalesced patterns
                         when the input array is large because we have L2 cache evictions. When the input array is small enough
                         it can actually fit completely within the L2 cache, at this point we are just measuring cache speed.
                         So even if threads within a warp have non-coalescing memory accesses, the negative effects may be mitigated
